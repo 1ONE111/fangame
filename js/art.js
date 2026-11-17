@@ -858,8 +858,8 @@
   /* 책상 치수 */
   Art.tableGeom = function (W, H) {
     const cx = W / 2;
-    const hw1 = Math.min(W / 2 - 16, 400);
-    return { cx: cx, y0: H - 600, y1: H - 468, hw0: hw1 - 72, hw1: hw1 };
+    const hw1 = Math.min(W / 2 - 16, 540);
+    return { cx: cx, y0: H - 600, y1: H - 468, hw0: hw1 - Math.max(72, hw1 * 0.17), hw1: hw1 };
   };
 
   Art.backdrop = function (c, W, H, t, o) {
@@ -899,6 +899,43 @@
     line(c, [[cx + 46, hz + 60], [cx + g.hw0 + 30, g.y0 + 6]], { lw: 4, seed: 42, amp: 2 });
     line(c, [[-10, hz + 60], [cx - 46, hz + 60]], { lw: 3, seed: 43, amp: 1.5 });
     line(c, [[cx + 46, hz + 60], [W + 10, hz + 60]], { lw: 3, seed: 44, amp: 1.5 });
+  };
+
+  /* 넓은 화면 양옆 장식: 입간판, 풍선 */
+  Art.sideDecor = function (c, W, H, t) {
+    const g = Art.tableGeom(W, H);
+    const room = W / 2 - g.hw1;
+    if (room < 330) return;
+    const off = g.hw1 + Math.min(room * 0.55, 330);
+    // 왼쪽: 입간판
+    const x = g.cx - off;
+    const top = H - 930;
+    const bot = H - 548;
+    line(c, [[x - 70, bot - 10], [x - 96, bot + 44]], { lw: 5, seed: 1101 });
+    line(c, [[x + 70, bot - 10], [x + 96, bot + 44]], { lw: 5, seed: 1102 });
+    shape(c, [[x - 104, top], [x + 104, top - 4], [x + 106, bot], [x - 102, bot + 4]], { fill: '#fff', lw: 5, seed: 1103, amp: 1.6, poly: true });
+    c.save();
+    c.beginPath();
+    c.rect(x - 98, top + 6, 196, bot - top - 10);
+    c.clip();
+    Art.jaewon(c, x, bot + 40, 0.6, 'yaho1', t, { long: true });
+    c.restore();
+    Art.caption(c, '야호', x, top + 50, 54, { rot: -0.04, seed: 1104 });
+    // 오른쪽: 풍선
+    const bx = g.cx + off;
+    const by = H - 560;
+    const cols = ['#ffd84d', '#ff8fa3', '#8ed1fc'];
+    const pos = [[-62, -330], [4, -400], [66, -318]];
+    for (let i = 0; i < 3; i++) {
+      const sway = Math.sin(t * 1.3 + i * 1.9) * 9;
+      const px = bx + pos[i][0] + sway;
+      const py = by + pos[i][1] + Math.cos(t * 1.1 + i) * 5;
+      line(c, [[bx, by], [bx + pos[i][0] * 0.5 + sway * 0.4, by + pos[i][1] * 0.5], [px, py + 52]], { lw: 3, seed: 1110 + i, amp: 1 });
+      shape(c, ell(px, py, 44, 54, 12), { fill: cols[i], lw: 4.5, seed: 1114 + i, amp: 1.4 });
+      shape(c, [[px - 7, py + 52], [px + 7, py + 52], [px, py + 64]], { fill: cols[i], lw: 3.5, seed: 1118 + i, amp: 0.6, poly: true });
+      line(c, [[px - 20, py - 26], [px - 26, py - 8]], { lw: 4, stroke: '#fff', seed: 1122 + i, amp: 0.5 });
+    }
+    shape(c, [[bx - 24, by - 6], [bx + 24, by - 6], [bx + 30, by + 26], [bx - 30, by + 26]], { fill: '#eee', lw: 4.5, seed: 1126, amp: 1, poly: true });
   };
 
   Art.table = function (c, W, H) {
@@ -992,6 +1029,45 @@
     c.lineWidth = 3;
     c.strokeRect(-70, -86, 140, 140);
     Art.text(c, good ? '찰칵!' : '흔들림', 0, 82, 30, {});
+    c.restore();
+  };
+
+  /* 조작 아이콘: click | swipe | space | hold */
+  Art.icon = function (c, kind, x, y, s) {
+    c.save();
+    c.translate(x, y);
+    c.scale(s || 1, s || 1);
+    if (kind === 'click' || kind === 'swipe') {
+      const body = ell(0, 0, 18, 27, 12, 0.8);
+      shape(c, body, { fill: '#fff', lw: 3.5, seed: 801, amp: 0.5 });
+      if (kind === 'click') {
+        c.save();
+        c.beginPath();
+        c.rect(-24, -34, 24, 29);
+        c.clip();
+        shape(c, body, { fill: RED, lw: 3.5, seed: 801, amp: 0.5 });
+        c.restore();
+      }
+      line(c, [[0, -27], [0, -5]], { lw: 3, seed: 802, amp: 0.3 });
+      line(c, [[-17, -5], [17, -5]], { lw: 3, seed: 803, amp: 0.3 });
+      if (kind === 'swipe') {
+        [-1, 1].forEach((d) => {
+          line(c, [[d * 27, 0], [d * 44, 0]], { lw: 4, stroke: RED, seed: 805 + d, amp: 0.4 });
+          line(c, [[d * 37, -8], [d * 46, 0], [d * 37, 8]], { lw: 4, stroke: RED, seed: 808 + d, amp: 0.3 });
+        });
+      }
+    } else {
+      const hold = kind === 'hold';
+      const dy = hold ? 6 : 0;
+      shape(c, [[-42, -12 + dy], [42, -12 + dy], [42, 14 + dy], [-42, 14 + dy]], { fill: hold ? RED : '#fff', lw: 3.5, seed: 811, amp: 0.8, poly: true });
+      if (hold) {
+        line(c, [[0, -34], [0, -16]], { lw: 4, stroke: RED, seed: 812, amp: 0.3 });
+        line(c, [[-8, -24], [0, -15], [8, -24]], { lw: 4, stroke: RED, seed: 813, amp: 0.3 });
+      } else {
+        line(c, [[-12, -30], [-12, -19]], { lw: 4, stroke: RED, seed: 812, amp: 0.3 });
+        line(c, [[12, -30], [12, -19]], { lw: 4, stroke: RED, seed: 813, amp: 0.3 });
+      }
+    }
     c.restore();
   };
 

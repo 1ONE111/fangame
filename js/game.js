@@ -50,7 +50,7 @@
     const vw = window.innerWidth;
     const vh = window.innerHeight;
     S = Math.min(vw / 720, vh / 1280);
-    W = Math.round(Math.min(vw / S, 1100));
+    W = Math.round(Math.min(vw / S, 3200));
     H = Math.round(Math.min(vh / S, 1560));
     DPR = Math.min(window.devicePixelRatio || 1, 2);
     cv.width = Math.round(W * S * DPR);
@@ -294,11 +294,11 @@
       n.hits.push(T);
       g.targets.push(T);
     };
-    if (type === 'paper') add(cue + 1, 'tap');
+    if (type === 'paper') add(cue + 1, 'click');
     else if (type === 'troll') add(cue + 1, 'swipe');
     else if (type === 'phone') {
-      add(cue + 1, 'tap');
-      add(cue + 1.5, 'tap');
+      add(cue + 1, 'key');
+      add(cue + 1.5, 'key');
     } else if (type === 'wolf') {
       add(cue + 1, 'hold');
       n.holdEnd = cue + 3;
@@ -403,7 +403,7 @@
     const type = tu.steps[Math.min(tu.i, tu.steps.length - 1)];
     const info = D.types[type];
     $('#tut-title').innerHTML = info.name + ' → <em>' + info.action + '!</em>';
-    $('#tut-how').innerHTML = info.how + ' <kbd>' + (touchMode ? info.touch : info.key) + '</kbd>';
+    $('#tut-how').innerHTML = info.how + ' <kbd>' + (touchMode ? info.touch : info.pc) + '</kbd>';
     let pips = '';
     for (let i = 0; i < D.tutorialNeed; i++) pips += '<i class="' + (tu.done || i < tu.ok ? 'on' : '') + '"></i>';
     $('#tut-pips').innerHTML = pips;
@@ -454,7 +454,9 @@
     if (g.fx.length > 80) g.fx.shift();
   }
 
-  function inputPress(tSec, src) {
+  /* 누르기. dev = 'mouse' | 'key' | 'touch'
+     종이는 마우스 클릭, 폰/늑대는 스페이스. 터치는 뭐든 탭으로 통한다. */
+  function inputPress(tSec, src, dev) {
     const g = game;
     if (!playing()) return null;
     const b = tSec / g.beatSec;
@@ -464,26 +466,27 @@
     const dt = (b - T.beat) * g.beatSec;
     if (Math.abs(dt) <= g.win) {
       const q = Math.abs(dt) <= g.winP ? 'perfect' : 'good';
-      if (T.kind === 'tap') {
+      const want = T.kind === 'click' ? 'mouse' : 'key';
+      if (T.kind === 'swipe' || (dev !== 'touch' && dev !== want)) {
+        finish(g, n, 'miss', dev === 'key' ? 'wrong-photo' : 'wrong-sign', b);
+      } else if (T.kind === 'click') {
         T.done = true;
         T.res = q;
-        if (n.type === 'paper') {
-          finish(g, n, q, 'signed', b);
-        } else {
-          snap(g, n, b);
-          if (T === n.hits[1]) {
-            const first = n.hits[0].res;
-            if (!first || first === 'miss') finish(g, n, 'miss', 'half', b);
-            else finish(g, n, first === 'perfect' && q === 'perfect' ? 'perfect' : 'good', 'photo', b);
-          }
+        finish(g, n, q, 'signed', b);
+      } else if (T.kind === 'key') {
+        T.done = true;
+        T.res = q;
+        snap(g, n, b);
+        if (T === n.hits[1]) {
+          const first = n.hits[0].res;
+          if (!first || first === 'miss') finish(g, n, 'miss', 'half', b);
+          else finish(g, n, first === 'perfect' && q === 'perfect' ? 'perfect' : 'good', 'photo', b);
         }
-      } else if (T.kind === 'hold') {
+      } else {
         T.done = true;
         T.res = q;
         g.hold = { note: n, src: src, q: q, b0: b };
         A.howlStart();
-      } else {
-        finish(g, n, 'miss', 'wrong-sign', b);
       }
       return n;
     }
@@ -649,7 +652,7 @@
       case 'photo':
         n.leaveDelay = 0.12;
         hearts(perfect ? 3 : 1);
-        addFx(g, { type: 'pola', good: true, x: cx - 228, y: H - 730, dur: 2.2, b0: b, rot: -0.14 });
+        addFx(g, { type: 'pola', good: true, x: cx - (W > 1200 ? 330 : 228), y: H - 730, dur: 2.2, b0: b, rot: -0.14 });
         break;
       case 'howl':
         n.leaveDelay = 0.15;
@@ -668,7 +671,7 @@
       case 'half':
         A.miss();
         note('한 장 더 찍어야지!');
-        addFx(g, { type: 'pola', good: false, x: cx - 228, y: H - 730, dur: 1.8, b0: b, rot: -0.14 });
+        addFx(g, { type: 'pola', good: false, x: cx - (W > 1200 ? 330 : 228), y: H - 730, dur: 1.8, b0: b, rot: -0.14 });
         break;
       case 'short':
         A.miss();
@@ -688,10 +691,31 @@
         setAnim(g, 'sign', b, 0.8);
         A.sign(false);
         A.miss();
-        n.signBeat = b;
-        n.leaveDelay = 0.3;
-        note('악질한테 싸인을?!', Art.RED);
-        say('개꿀ㅋ', 1);
+        if (n.type === 'troll') {
+          n.signBeat = b;
+          n.leaveDelay = 0.3;
+          note('악질한테 싸인을?!', Art.RED);
+          say('개꿀ㅋ', 1);
+        } else if (n.type === 'phone') {
+          note('폰에 싸인을 해버렸다', Art.RED);
+          say('제 폰...', 0.9);
+        } else {
+          note('늑대인간한테 싸인을?!', Art.RED);
+          say('끼잉...', 0.9);
+        }
+        break;
+      case 'wrong-photo':
+        A.shutter();
+        A.miss();
+        g.flashBeat = b;
+        setAnim(g, 'photo', b, 0.5, 1);
+        if (n.type === 'troll') {
+          note('악질이랑 사진을?!', Art.RED);
+          say('인증샷ㅋ', 1);
+        } else {
+          note('사진 말고 싸인!', Art.RED);
+          say(pick(D.fanSad), 0.9);
+        }
         break;
     }
 
@@ -737,15 +761,19 @@
       if (r < FM.debug.sloppy) {
         if (r < FM.debug.sloppy * 0.4) continue;
         if (T.kind === 'swipe') {
-          inputPress(t, 'auto');
+          inputPress(t, 'auto', 'mouse');
           inputRelease(t + 0.01, 'auto');
-        } else inputSwipe(t, 1);
+        } else if (r < FM.debug.sloppy * 0.7) inputSwipe(t, 1);
+        else {
+          inputPress(t, 'auto', T.kind === 'click' ? 'key' : 'mouse');
+          inputRelease(t + 0.01, 'auto');
+        }
         continue;
       }
       if (T.kind === 'swipe') inputSwipe(t, i % 2 ? 1 : -1);
       else {
-        inputPress(t, 'auto');
-        if (T.kind === 'tap') inputRelease(t + 0.01, 'auto');
+        inputPress(t, 'auto', T.kind === 'click' ? 'mouse' : 'key');
+        if (T.kind !== 'hold') inputRelease(t + 0.01, 'auto');
       }
     }
   }
@@ -846,7 +874,7 @@
       if (e.repeat) return;
       setTouchMode(false);
       const t = clock.heard(evTime(e));
-      if (isTap) inputPress(t, 'k:' + e.code);
+      if (isTap) inputPress(t, 'k:' + e.code, 'key');
       else if (isL) inputSwipe(t, -1);
       else if (isR) inputSwipe(t, 1);
     } else if (state === 'story') {
@@ -874,16 +902,18 @@
     }
     if (state !== 'play' || modal || !playing()) return;
     e.preventDefault();
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
     const g = game;
     const t = clock.heard(evTime(e));
-    const gs = { x: e.clientX, y: e.clientY, t: t, tp: performance.now(), applied: false, note: null, swiped: false, src: 'p:' + e.pointerId };
+    const dev = e.pointerType === 'mouse' ? 'mouse' : 'touch';
+    const gs = { x: e.clientX, y: e.clientY, t: t, tp: performance.now(), applied: false, note: null, swiped: false, src: 'p:' + e.pointerId, dev: dev };
     gestures.set(e.pointerId, gs);
     const T = nextTarget(g);
     // 악질 앞에서는 스와이프일 수 있으니 손을 뗄 때까지 판정을 미룬다
     const defer = T && T.kind === 'swipe' && t / g.beatSec >= T.note.cue - 0.02;
     if (!defer) {
       gs.applied = true;
-      gs.note = inputPress(t, gs.src);
+      gs.note = inputPress(t, gs.src, dev);
     }
   });
   window.addEventListener('pointermove', (e) => {
@@ -891,7 +921,7 @@
     if (!gs || gs.swiped) return;
     const dx = e.clientX - gs.x;
     const dy = e.clientY - gs.y;
-    const th = Math.max(24, W * S * 0.065);
+    const th = clamp(H * S * 0.04, 26, 56);
     if (Math.abs(dx) > th && Math.abs(dx) > Math.abs(dy) * 1.1) {
       gs.swiped = true;
       const g = game;
@@ -909,7 +939,7 @@
     gestures.delete(e.pointerId);
     if (!game) return;
     if (!gs.swiped && !gs.applied) {
-      inputPress(gs.t, gs.src);
+      inputPress(gs.t, gs.src, gs.dev);
       inputRelease(clock.heard(), gs.src);
     } else if (gs.applied) {
       inputRelease(clock.heard(evTime(e)), gs.src);
@@ -1088,13 +1118,13 @@
       v.p = p;
       v.s = FRONT * d;
       v.y = hz + (baseY - hz) * d;
-      v.x = cx + n.side * 170 * d * Math.min(1, p);
+      v.x = cx + n.side * (170 + clamp((W - 720) / 900, 0, 1) * 80) * d * Math.min(1, p);
       v.alpha = clamp(5.4 - p, 0, 1) * clamp((b - n.born) / 0.5, 0, 1);
       v.atTable = p < 0.5 && b >= n.cue - 0.2;
       if (g.hold && g.hold.note === n) v.mood = 'howl';
       if (n.result) {
         if (n.how === 'signed' || n.how === 'photo' || n.how === 'howl') v.mood = 'happy';
-        else if (n.how === 'wrong-sign') v.mood = 'laugh';
+        else if (n.how === 'wrong-sign' && n.type === 'troll') v.mood = 'laugh';
       }
       return v;
     }
@@ -1102,7 +1132,8 @@
     const u = (b - leaveAt) / n.leaveDur;
     if (u >= 1) return null;
     const dir = n.dir;
-    const far = W / 2 + 190;
+    const far = Math.min(W / 2 + 190, 720);
+    if (W > 1200) v.alpha = clamp((1 - u) / 0.3, 0, 1);
     v.atTable = true;
     if (n.how === 'banned' || n.how === 'wrong-ban') {
       v.layer = 'fly';
@@ -1151,6 +1182,7 @@
     }
 
     Art.backdrop(c, W, H, t, { banner: g.mode === 'tutorial' ? '' : null });
+    Art.sideDecor(c, W, H, t);
 
     // 줄 선 시청자들
     const adv = queueAdv(g, b);
@@ -1264,7 +1296,7 @@
       c.stroke();
     }
     const near = n.hits.some((h) => Math.abs(h.beat - b) < 0.12);
-    Art.text(c, info.prompt, x, y + 2, near ? 46 : 40, { bold: true, weight: 400, color: near ? Art.RED : Art.INK });
+    Art.text(c, touchMode ? info.promptTouch : info.prompt, x, y + 2, near ? 46 : 40, { bold: true, weight: 400, color: near ? Art.RED : Art.INK });
     c.restore();
   }
 
@@ -1314,17 +1346,16 @@
   /* 조작 안내 (화면 아래 양쪽) */
   function drawLegend(g) {
     const types = D.days[g.day].types;
-    const txt = {
-      paper: ['싸인', touchMode ? '탭' : '스페이스'],
-      phone: ['찰칵찰칵', touchMode ? '탭 탭' : '스페이스 2번'],
-      troll: ['밴', touchMode ? '스와이프' : '← →'],
-      wolf: ['아우우우', touchMode ? '꾹 누르기' : '스페이스 꾹'],
-    };
-    const left = ['paper', 'phone'].filter((k) => types.indexOf(k) >= 0);
-    const right = ['troll', 'wolf'].filter((k) => types.indexOf(k) >= 0);
-    const cw = 240;
-    const ch = 100;
-    const draw = (list, x0) => {
+    const has = (k) => types.indexOf(k) >= 0;
+    const wide = W > 1200 && !touchMode;
+    const txt = touchMode
+      ? { paper: ['싸인', '탭'], phone: ['찰칵찰칵', '탭 탭'], troll: ['밴', '스와이프'], wolf: ['아우우우', '꾹 누르기'] }
+      : { paper: ['싸인', '클릭'], phone: ['찰칵찰칵', '스페이스 2번'], troll: ['밴', '누른 채 휙'], wolf: ['아우우우', '스페이스 꾹'] };
+    const icon = { paper: 'click', troll: 'swipe', phone: 'space', wolf: 'hold' };
+    const cw = wide ? 356 : 240;
+    const ch = wide ? 108 : 100;
+    const draw = (list, x0, title) => {
+      if (!list.length) return;
       list.forEach((k, i) => {
         const y0 = H - 16 - (list.length - i) * (ch + 10);
         c.save();
@@ -1336,13 +1367,21 @@
         c.clip();
         Art.fan(c, 40, ch + 26, 0.3, k, { seed: 3, t: 0 });
         c.restore();
-        Art.text(c, txt[k][0], 84, 34, 34, { align: 'left', bold: true, weight: 400 });
-        Art.text(c, txt[k][1], 84, 71, 28, { align: 'left', color: Art.RED });
+        Art.text(c, txt[k][0], 84, ch * 0.34, 34, { align: 'left', bold: true, weight: 400 });
+        Art.text(c, txt[k][1], 84, ch * 0.71, 28, { align: 'left', color: Art.RED });
+        if (wide) Art.icon(c, icon[k], cw - 58, ch / 2, 1);
         c.restore();
       });
+      if (title) Art.caption(c, title, x0 + 62, H - 16 - list.length * (ch + 10) - 26, 32, { rot: -0.03, seed: 960 });
     };
-    draw(left, 12);
-    draw(right, W - 12 - cw);
+    if (wide) {
+      // 왼손 키보드, 오른손 마우스
+      draw(['phone', 'wolf'].filter(has), W / 2 - 190 - cw, '키보드');
+      draw(['paper', 'troll'].filter(has), W / 2 + 190, '마우스');
+    } else {
+      draw(['paper', 'phone'].filter(has), 12);
+      draw(['troll', 'wolf'].filter(has), W - 12 - cw);
+    }
   }
 
   function drawHud(g, b) {
@@ -1365,7 +1404,7 @@
       const cb = g.stats.combo;
       if (cb >= 3) {
         const cu = clamp((b - g.comboBeat) / 0.25, 0, 1);
-        Art.text(c, cb + ' 콤보', W - 104, H - 968, 54 * (1.25 - 0.25 * cu), { color: Art.INK, outline: '#fffdf6', outlineW: 12, rot: 0.07 });
+        Art.text(c, cb + ' 콤보', Math.min(W - 104, W / 2 + 520), H - 968, 54 * (1.25 - 0.25 * cu), { color: Art.INK, outline: '#fffdf6', outlineW: 12, rot: 0.07 });
       }
     }
 
@@ -1394,6 +1433,10 @@
     const bounce = Math.abs(Math.sin(t * 3.2)) * 16;
     Art.fan(c, cx - 246, baseY + 92, 0.62, 'paper', { t: t, seed: 1, bob: Math.pow(1 - frac(t * 1.6), 3) });
     Art.fan(c, cx + 246, baseY + 92, 0.62, 'phone', { t: t, seed: 2, bob: Math.pow(1 - frac(t * 1.6 + 0.5), 3) });
+    if (W > 1200) {
+      Art.fan(c, cx - 500, baseY + 92, 0.62, 'troll', { t: t, seed: 3, bob: Math.pow(1 - frac(t * 1.6 + 0.25), 3) });
+      Art.fan(c, cx + 500, baseY + 92, 0.62, 'wolf', { t: t, seed: 4, bob: Math.pow(1 - frac(t * 1.6 + 0.75), 3) });
+    }
     Art.jaewon(c, cx, baseY - bounce, 0.98 + tall * 0.2, 'yaho1', t, { blink: frac(t * 0.31) > 0.94 });
     Art.text(c, '어케했누?', cx - 232, baseY - 300, 46, { rot: -0.1 });
     Art.text(c, '야호', cx + 236, baseY - 318, 52, { rot: 0.12 });

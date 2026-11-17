@@ -34,38 +34,48 @@
     3: 'PTCP WPT CPW TCPT WW PCTC WTP CTW TPCT WCP CCTT WW PTW TCW',
   };
 
+  /* 동작마다 조작이 정해져 있다.
+     손으로 하는 일(싸인, 밴)은 마우스, 몸으로 하는 일(사진, 하울링)은 스페이스. */
   D.types = {
     paper: {
       name: '종이 든 시청자',
       action: '싸인',
-      key: '스페이스',
+      input: 'click',
+      pc: '마우스 클릭',
       touch: '화면 탭',
       how: '"띵" 다음 박자에 한 번',
-      prompt: '탭!',
+      prompt: '딸깍!',
+      promptTouch: '탭!',
     },
     troll: {
       name: '악질 시청자',
       action: '밴',
-      key: '← 또는 →',
+      input: 'swipe',
+      pc: '마우스 누른 채 옆으로 휙',
       touch: '옆으로 스와이프',
       how: '"뿌-" 다음 박자에 밀어내기',
-      prompt: '밀어!',
+      prompt: '휙!',
+      promptTouch: '밀어!',
     },
     phone: {
       name: '폰 든 시청자',
       action: '찰칵찰칵',
-      key: '스페이스 두 번',
+      input: 'key',
+      pc: '스페이스 두 번',
       touch: '탭 두 번',
       how: '"삐삐" 다음 박자에 빠르게 두 번',
-      prompt: '탭탭!',
+      prompt: '탁탁!',
+      promptTouch: '탭탭!',
     },
     wolf: {
       name: '늑대인간 시청자',
       action: '같이 아우우우',
-      key: '스페이스 꾹',
+      input: 'hold',
+      pc: '스페이스 꾹',
       touch: '화면 꾹',
-      how: '"아우~" 다음 박자부터 2박자 동안 꾹',
+      how: '"아우~" 다음 박자부터 2박자 동안',
       prompt: '꾹~',
+      promptTouch: '꾹~',
     },
   };
 
