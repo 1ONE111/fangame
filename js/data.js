@@ -92,23 +92,25 @@
   /* 스토리. who가 비어 있으면 나레이션. */
   D.story = {
     1: [
-      { who: '', text: '유튜버 김재원.\n전역하고 첫 팬미팅이 3일 앞으로 다가왔다.', pose: 'down' },
+      { who: '', text: '유튜버 김재원.\n전역하고 첫 팬미팅이 열린다. 무려 3일 동안.', pose: 'down' },
       { who: '재원', text: '야호', pose: 'yaho1' },
       { who: '', text: '그런데 문제가 하나 있다.\n군대에 있는 동안 몸이 완전히 굳어버렸다.', pose: 'think' },
       { who: '재원', text: '이 몸으로... 잘할 수 있을까?', pose: 'think' },
-      { who: '', text: '그래서 3일 동안 몸을 풀기로 했다.\n시청자들이 연습 상대가 되어주기로 했다.', pose: 'down' },
+      { who: '', text: '그래서 시작 전에 잠깐 몸부터 풀기로 했다.\n연습 한 번 하고, 바로 실전이다.', pose: 'down' },
       { who: '', text: '종이를 든 시청자에겐 싸인을.\n악질 시청자에겐 밴을.', pose: 'shrug' },
       { who: '재원', text: 'ㄱㄱ', pose: 'yaho1' },
     ],
     2: [
-      { who: '', text: '팬미팅 D-2.\n굳었던 손이 좀 풀렸다. 싸인은 이제 좀 한다.', pose: 'down' },
+      { who: '', text: '팬미팅 2일차.\n굳었던 손이 좀 풀렸다. 싸인은 이제 좀 한다.', pose: 'down' },
       { who: '재원', text: '야호오오', pose: 'yaho2' },
-      { who: '', text: '오늘은 폰을 든 시청자도 온다.\n같이 사진을 찍어달라고 한다.', pose: 'think' },
+      { who: '재원', text: '그러네, 어젠 사진 찍어간 사람이 없네?', pose: 'think' },
+      { who: '', text: '오늘은 폰을 든 시청자도 온다.\n같이 사진을 찍어달라고 한다.', pose: 'down' },
       { who: '', text: '사진은 한 장으로는 불안하다.\n그래서 두 장 찍는다.', pose: 'shrug' },
       { who: '재원', text: '찰칵찰칵.', pose: 'yaho1' },
     ],
     3: [
-      { who: '', text: '팬미팅 D-1.\n몸이 거의 다 풀렸다. 마지막 연습이다.', pose: 'down' },
+      { who: '', text: '팬미팅 3일차.\n몸이 거의 다 풀렸다.', pose: 'down' },
+      { who: '재원', text: '드디어 마지막 날이야.\n이상한 사람은 안 나타나겠지?', pose: 'think' },
       { who: '', text: '그런데 제보가 하나 들어왔다.\n시청자 중에 늑대인간이 섞여 있다고 한다.', pose: 'think' },
       { who: '재원', text: '?', pose: 'shrug' },
       { who: '', text: '늑대인간 시청자 앞에서는\n같이 울어줘야 한다. 그것이 예의다.', pose: 'down' },
@@ -116,11 +118,11 @@
       { who: '', text: '악질, 종이, 폰, 늑대인간.\n오늘은 전부 온다.', pose: 'yaho1' },
     ],
     ending: [
-      { who: '', text: '그렇게 3일간의 연습이 끝났다.', pose: 'down' },
-      { who: '', text: '굳었던 몸이 다 풀렸다.\n싸인도, 밴도, 사진도, 하울링도 문제없다.', pose: 'shrug' },
+      { who: '', text: '그렇게 3일간의 팬미팅이 끝났다.', pose: 'down' },
+      { who: '', text: '굳었던 몸이 다 풀렸다.\n싸인도, 밴도, 사진도, 하울링도 문제없었다.', pose: 'shrug' },
       { who: '재원', text: '야호오오오오오!!', pose: 'yaho3' },
       { who: '시청자들', text: '어케했누? 어케했누? 어케했누?', pose: 'yaho3' },
-      { who: '', text: '내일은 진짜 전역 후 첫 팬미팅이다.', pose: 'yaho1' },
+      { who: '', text: '전역 후 첫 팬미팅, 무사히 끝!', pose: 'yaho1' },
       { who: '', text: '그날 밤.', scene: 'sick' },
       { who: '재원', text: '끄응... 몸이 왜 이러누', scene: 'sick' },
       { who: '', text: '전역하고 안 쓰던 몸을 3일 내내 썼더니\n몸살이 나버렸다.', scene: 'sick' },
@@ -141,13 +143,13 @@
     level: '열매1단계',
     members: '24,965',
     title: '[공지] 오늘 휴방하겠습니다',
-    body: ['안녕하세요 김재원입니다.', '3일 동안 팬미팅 연습을 너무 열심히 했더니', '몸살이 났습니다.', '푹 자고 오겠습니다. 야호(작게)'],
+    body: ['안녕하세요 김재원입니다.', '3일 동안 팬미팅을 너무 열심히 했더니', '몸살이 났습니다.', '푹 자고 오겠습니다. 야호(작게)'],
     time: '오전 7:12',
     views: 1204,
     stamp: '휴방',
     comments: [
       { who: 'paper', name: '종이든시청자', text: '푹 쉬세요ㅠㅠ' },
-      { who: 'troll', name: '악질시청자', text: '팬미팅은요??ㅋ' },
+      { who: 'troll', name: '악질시청자', text: '그럴 줄 알았다ㅋ' },
       { who: 'phone', name: '폰든시청자', text: '야호를 너무 많이 하셨어' },
       { who: 'wolf', name: '늑대인간', text: '아우우... (걱정)' },
     ],
@@ -158,7 +160,7 @@
     { id: 'S', min: 90, caption: '야호오오오오오!!', pose: 'yaho3', line: '완벽한 팬미팅이었다.' },
     { id: 'A', min: 75, caption: '야호오오', pose: 'yaho2', line: '꽤 잘했다. 시청자들이 만족했다.' },
     { id: 'B', min: 55, caption: '야호', pose: 'yaho1', line: '어찌저찌 끝냈다. 통과.' },
-    { id: 'F', min: 0, caption: '어케했누?', pose: 'lie', line: '팬미팅이 엉망이 됐다. 다시 연습하자.' },
+    { id: 'F', min: 0, caption: '어케했누?', pose: 'lie', line: '팬미팅이 엉망이 됐다. 다시 해보자.' },
   ];
   D.passScore = 55;
 

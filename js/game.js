@@ -30,7 +30,7 @@
 
   /* ---------- 저장 ---------- */
   const SAVE_KEY = 'kjw-fanmeeting-practice-v1';
-  const save = { unlocked: 1, best: {}, offsetMs: 0, volume: 0.8, tutDone: {}, cleared: false };
+  const save = { unlocked: 1, best: {}, offsetMs: 0, volume: 0.8, tutDone: {}, cleared: false, calibrated: false };
   try {
     const raw = JSON.parse(localStorage.getItem(SAVE_KEY) || '{}');
     if (raw && typeof raw === 'object') Object.assign(save, raw);
@@ -412,7 +412,7 @@
   }
   /* 다음 날 여는 조건 */
   function goalText(day) {
-    return '본게임 ' + D.passScore + '점 이상이면 ' + (day < 3 ? day + 1 + '일차 열림' : '엔딩');
+    return '실전 ' + D.passScore + '점 이상이면 ' + (day < 3 ? day + 1 + '일차 열림' : '엔딩');
   }
 
   /* --- 소리 예약 (조금씩 앞당겨서) --- */
@@ -820,6 +820,93 @@
     }
   }
 
+  /* ================= 박자 맞추기 =================
+     기기마다 소리가 화면보다 늦게 나오는 정도가 다르다 (폰 앱에서는 0.3초 넘게 늦기도 한다).
+     '딱' 소리에 맞춰 누르게 해서 그 차이를 재고 save.offsetMs에 넣는다.
+     화면을 보면 화면에 맞춰 누르게 되니까, 이 동안에는 박자를 화면에 보여주지 않는다. */
+  const CAL = { interval: 0.8, ticks: 11, need: 5, pips: 8 };
+  let calib = null;
+
+  function requestDay(day) {
+    if (save.calibrated) return startDay(day);
+    unlockAudio();
+    openCalib(() => startDay(day));
+  }
+  function openCalib(after) {
+    calib = { after: after, running: false, done: false, taps: [], timer: 0 };
+    $('#calib-how').textContent =
+      (after ? '처음 한 번만 하면 됨.\n' : '') + "'딱' 소리에 맞춰서 화면을 탭하거나 스페이스!\n화면 말고 소리만 듣고 누르기.";
+    $('#calib-msg').textContent = '';
+    $('#btn-calib-go').textContent = '시작';
+    $('#btn-calib-go').hidden = false;
+    $('#btn-calib-skip').textContent = after ? '건너뛰기' : '닫기';
+    calibPips(0);
+    openModal('modal-calib');
+  }
+  function calibPips(n) {
+    let s = '';
+    for (let i = 0; i < CAL.pips; i++) s += '<i class="' + (i < n ? 'on' : '') + '"></i>';
+    $('#calib-pips').innerHTML = s;
+  }
+  function runCalib() {
+    unlockAudio().then(() => {
+      if (!calib) return;
+      const ctx = A.ctx();
+      if (!ctx || ctx.state !== 'running') {
+        $('#calib-msg').textContent = '소리가 안 나와서 못 잼. 무음 모드를 끄고 다시.';
+        return;
+      }
+      calib.running = true;
+      calib.done = false;
+      calib.taps = [];
+      $('#btn-calib-go').hidden = true;
+      $('#calib-msg').textContent = '듣는 중...';
+      calibPips(0);
+      clock.start(0.8);
+      for (let k = 0; k < CAL.ticks; k++) A.count(clock.ctxStart + k * CAL.interval, k % 4 === 0);
+      calib.timer = setTimeout(finishCalib, (0.8 + CAL.ticks * CAL.interval + 0.3) * 1000);
+    });
+  }
+  function calibTap(tPerf) {
+    if (!calib || !calib.running) return;
+    const raw = clock.raw(tPerf);
+    // 소리는 늦게 들리니까 탭은 '딱'보다 뒤에 온다: 그 '딱'에서 -0.2 ~ +0.6초 사이를 같은 박으로 본다
+    const k = Math.floor((raw + 0.2) / CAL.interval);
+    if (k < 0 || k >= CAL.ticks || calib.taps.some((x) => x.k === k)) return;
+    calib.taps.push({ k: k, d: raw - k * CAL.interval });
+    calibPips(Math.min(CAL.pips, calib.taps.length));
+  }
+  function finishCalib() {
+    if (!calib) return;
+    calib.running = false;
+    clock.stop();
+    const ds = calib.taps.map((x) => x.d).sort((a, b) => a - b);
+    $('#btn-calib-go').hidden = false;
+    if (ds.length < CAL.need) {
+      $('#calib-msg').textContent = '누른 게 너무 적어서 못 잼. 다시!';
+      $('#btn-calib-go').textContent = '다시';
+      return;
+    }
+    const med = ds[Math.floor(ds.length / 2)];
+    const ms = clamp(Math.round(((med - A.latency()) * 1000) / 10) * 10, -150, 500);
+    save.offsetMs = ms;
+    save.calibrated = true;
+    persist();
+    calib.done = true;
+    $('#calib-msg').textContent =
+      ms >= 60 ? '이 기기는 소리가 ' + (ms / 1000 + A.latency()).toFixed(2) + '초 늦게 나옴.\n맞춰놨음!' : ms <= -60 ? '소리가 조금 빨리 나옴. 맞춰놨음!' : '딱 맞음!';
+    $('#btn-calib-go').textContent = calib.after ? '시작하기' : '확인';
+    A.sign(true);
+  }
+  function closeCalib() {
+    const c0 = calib;
+    if (c0 && c0.timer) clearTimeout(c0.timer);
+    if (c0 && c0.running) clock.stop();
+    calib = null;
+    closeModal();
+    if (c0 && c0.after) c0.after();
+  }
+
   /* ================= 결과 ================= */
 
   function showResult(g) {
@@ -869,6 +956,13 @@
     const isTap = TAP_KEYS.indexOf(e.code) >= 0;
     const isL = LEFT_KEYS.indexOf(e.code) >= 0;
     const isR = RIGHT_KEYS.indexOf(e.code) >= 0;
+    if (modal === 'modal-calib') {
+      if (isTap && calib && calib.running) {
+        e.preventDefault();
+        if (!e.repeat) calibTap(evTime(e));
+      }
+      return;
+    }
     if (state === 'play') {
       if (e.code === 'Escape' || e.code === 'KeyP') {
         e.preventDefault();
@@ -998,8 +1092,38 @@
       fn(e);
     });
   }
-  on('#btn-start', () => startDay(Number($('#btn-start').dataset.day) || 1));
-  $$('#days .day').forEach((el) => el.addEventListener('click', () => !el.disabled && startDay(Number(el.dataset.day))));
+  on('#btn-start', () => requestDay(Number($('#btn-start').dataset.day) || 1));
+  $$('#days .day').forEach((el) => el.addEventListener('click', () => !el.disabled && requestDay(Number(el.dataset.day))));
+  on('#btn-calib', () => {
+    A.click();
+    openCalib(null);
+  });
+  on('#btn-calib2', () => {
+    A.click();
+    openCalib(null);
+  });
+  on('#btn-calib-go', () => {
+    if (!calib) return;
+    if (calib.done) closeCalib();
+    else runCalib();
+  });
+  on('#btn-calib-skip', () => {
+    if (!calib) return;
+    A.click();
+    // 건너뛰어도 다시 묻지 않는다 (타이틀이나 설정에서 언제든 다시 할 수 있음)
+    if (!save.calibrated) {
+      save.calibrated = true;
+      persist();
+    }
+    closeCalib();
+  });
+  $('#modal-calib').addEventListener('pointerdown', (e) => {
+    if (e.target.closest && e.target.closest('button')) return;
+    if (calib && calib.running) {
+      e.preventDefault();
+      calibTap(evTime(e));
+    }
+  });
   on('#btn-skip-story', () => {
     A.click();
     endStory();
@@ -1107,7 +1231,6 @@
     return k + f;
   }
 
-  const COUNT_LEAD = 0.05; // 카운트 숫자를 소리보다 몇 초 먼저 그릴지 (화면 지연 보정)
   const FRONT = 1.18; // 책상 앞 시청자 크기
   const HEAD_Y = 566 + 300 * 1.18; // 책상 앞 시청자 머리 위 (바닥에서부터)
 
@@ -1188,7 +1311,7 @@
       if (su >= 0 && su < 1) c.translate(Math.sin(su * 40) * 9 * (1 - su), Math.cos(su * 33) * 5 * (1 - su));
     }
 
-    Art.backdrop(c, W, H, t, { banner: g.mode === 'tutorial' ? '' : null });
+    Art.backdrop(c, W, H, t, { banner: g.mode === 'tutorial' ? '김재원 팬미팅 (연습)' : '김재원 팬미팅' });
     Art.sideDecor(c, W, H, t);
 
     // 줄 선 시청자들
@@ -1252,7 +1375,7 @@
         else if (n.type === 'phone') Art.bubble(c, '사진!', cx - 196, headY + 40, 42, { scale: k, dir: 1, seed: n.seed });
         else Art.bubble(c, '싸인!', cx + 196, headY + 40, 42, { scale: k, dir: -1, seed: n.seed });
       }
-      if (g.mode === 'tutorial' && !n.result && b >= n.cue - 0.1) drawGuide(g, n, b);
+      if (!n.result && b >= n.cue - 0.1) drawGuide(g, n, b);
     }
 
     // 하울링 글자
@@ -1416,8 +1539,8 @@
     }
 
     // 시작 카운트: 숫자가 위에서 떨어져서 '딱' 소리 나는 순간에 착지한다.
-    // 화면은 소리보다 조금 늦게 보이니까 COUNT_LEAD만큼 당겨서 그린다.
-    const bc = b + COUNT_LEAD / g.beatSec;
+    // 기기마다 소리가 늦게 나오는 만큼은 박자 맞추기(save.offsetMs)가 b에 이미 반영한다.
+    const bc = b;
     const words = ['하나', '둘', '셋', '넷'];
     for (let i = 0; i < g.lead; i++) {
       const k = bc - i; // 0 = 착지 (소리 나는 박)
@@ -1600,6 +1723,9 @@
     const T = nextTarget(g);
     return { b: clock.heard() / g.beatSec, beatSec: g.beatSec, next: T ? { beat: T.beat, kind: T.kind, type: T.note.type, holdEnd: T.note.holdEnd || null } : null, finished: g.finished };
   };
+  FM.debug.raw = () => clock.raw();
+  FM.debug.calib = () => (calib ? { running: calib.running, done: calib.done, n: calib.taps.length } : null);
+  FM.debug.save = () => save;
   FM.debug.story = (key) => playStory(key, key === 'ending' ? '엔딩' : D.days[key].label, goTitle);
 
   goTitle();

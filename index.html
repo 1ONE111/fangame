@@ -22,7 +22,10 @@
             <button class="btn day" type="button" data-day="2">2일차</button>
             <button class="btn day" type="button" data-day="3">3일차</button>
           </div>
-          <button id="btn-settings" class="btn small" type="button">설정</button>
+          <div class="row">
+            <button id="btn-calib" class="btn small" type="button">박자 맞추기</button>
+            <button id="btn-settings" class="btn small" type="button">설정</button>
+          </div>
         </div>
       </section>
 
@@ -79,6 +82,18 @@
         </div>
       </div>
 
+      <!-- 박자 맞추기 -->
+      <div id="modal-calib" class="modal">
+        <div class="card">
+          <h2>박자 맞추기</h2>
+          <div class="calib-how" id="calib-how"></div>
+          <div class="tut-pips" id="calib-pips"></div>
+          <div class="calib-msg" id="calib-msg"></div>
+          <button id="btn-calib-go" class="btn big" type="button">시작</button>
+          <button id="btn-calib-skip" class="btn small" type="button">건너뛰기</button>
+        </div>
+      </div>
+
       <!-- 설정 -->
       <div id="modal-settings" class="modal">
         <div class="card">
@@ -89,9 +104,10 @@
           </label>
           <label class="field">
             <span>판정 보정 <b id="val-offset"></b></span>
-            <input id="rng-offset" type="range" min="-150" max="300" step="10">
-            <small>블루투스 이어폰처럼 소리가 늦게 들리면 +쪽으로. 박자에 맞게 눌렀는데 자꾸 삑이 나면 조절.</small>
+            <input id="rng-offset" type="range" min="-150" max="500" step="10">
+            <small>소리가 화면보다 늦게 들리면 +쪽으로. 박자 맞추기를 하면 자동으로 맞춰진다.</small>
           </label>
+          <button id="btn-calib2" class="btn" type="button">박자 맞추기</button>
           <button id="btn-reset" class="btn small danger" type="button">진행 기록 지우기</button>
           <button id="btn-close-settings" class="btn big" type="button">닫기</button>
         </div>
