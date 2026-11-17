@@ -120,7 +120,35 @@
       { who: '재원', text: '야호오오오오오!!', pose: 'yaho3' },
       { who: '시청자들', text: '어케했누? 어케했누? 어케했누?', pose: 'yaho3' },
       { who: '', text: '내일은 진짜 팬미팅이다.', pose: 'yaho1' },
-      { who: '', text: '- 끝 -\n플레이해주셔서 감사합니다.', pose: 'yaho2' },
+      { who: '', text: '그날 밤.', scene: 'sick' },
+      { who: '재원', text: '끄응... 몸이 왜 이러누', scene: 'sick' },
+      { who: '', text: '3일 내내 야호하고 밴하고 하울링까지 했더니\n몸살이 나버렸다.', scene: 'sick' },
+      { who: '', text: '다음 날 아침.', scene: 'cafe', step: 'write' },
+      { who: '재원', text: '(타닥타닥)', scene: 'cafe', step: 'write' },
+      { who: '', text: '네이퍼 팬카페에 공지가 올라왔다.', scene: 'cafe', step: 'post' },
+      { who: '시청자들', text: '어케했누? 어케했누? 어케했누?', scene: 'cafe', step: 'post' },
+      { who: '', text: '- 끝 -\n플레이해주셔서 감사합니다.', scene: 'cafe', step: 'stamp' },
+    ],
+  };
+
+  /* 엔딩 팬카페 화면 (scene: 'cafe') */
+  D.cafe = {
+    name: '김재원 팬카페',
+    menu: ['전체글보기', '방송공지', '팬카페공지', '김재원이 쓰는 게시판'],
+    board: '방송공지',
+    opened: '2016.12.26. 개설',
+    level: '열매1단계',
+    members: '24,965',
+    title: '[공지] 오늘 휴방하겠습니다',
+    body: ['안녕하세요 김재원입니다.', '3일 동안 팬미팅 연습을 너무 열심히 했더니', '몸살이 났습니다.', '푹 자고 오겠습니다. 야호(작게)'],
+    time: '오전 7:12',
+    views: 1204,
+    stamp: '휴방',
+    comments: [
+      { who: 'paper', name: '종이든시청자', text: '푹 쉬세요ㅠㅠ' },
+      { who: 'troll', name: '악질시청자', text: '팬미팅은요??ㅋ' },
+      { who: 'phone', name: '폰든시청자', text: '야호를 너무 많이 하셨어' },
+      { who: 'wolf', name: '늑대인간', text: '아우우... (걱정)' },
     ],
   };
 

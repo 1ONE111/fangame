@@ -314,6 +314,101 @@
     return HEAD.map((p) => [cx + p[0] * hw * m, cy + p[1] * hh]);
   }
 
+  /* 얼굴: 길고 가는 눈썹(안쪽 끝만 살짝 꺾임), 콕 찍은 작은 눈, 아래쪽 큰 빨간 입술.
+     전부 왼쪽으로 조금 치우쳐 있다. (HX, HY) = 머리 가운데 (머리 폭 절반 112 기준)
+     o: { blink, open, sick } */
+  function jaewonFace(c, HX, HY, sd, o) {
+    o = o || {};
+    const F = (px, py) => [HX + px, HY + py];
+    if (o.sick) {
+      // 아픈 얼굴: 눈썹 안쪽이 올라간다 + 볼 빗금
+      line(c, [F(-92, -16), F(-40, -21), F(-20, -27), F(-13, -32)], { lw: 3.2, seed: sd + 20, amp: 0.5 });
+      line(c, [F(92, -13), F(34, -19), F(25, -25), F(21, -29)], { lw: 3.2, seed: sd + 23, amp: 0.5 });
+      [[-74, 24], [62, 28]].forEach((b, j) => {
+        for (let i = 0; i < 3; i++) {
+          line(c, [F(b[0] - 12 + i * 11, b[1] + 8), F(b[0] - 4 + i * 11, b[1] - 8)], { lw: 3, stroke: '#ff5a6a', seed: sd + 90 + i + j * 5, amp: 0.4 });
+        }
+      });
+    } else {
+      line(c, [F(-95, -25), F(-40, -23), F(-19, -21), F(-12, -17)], { lw: 3.2, seed: sd + 20, amp: 0.5 });
+      line(c, [F(94, -22), F(32, -21), F(24, -19), F(21, -13)], { lw: 3.2, seed: sd + 23, amp: 0.5 });
+    }
+    if (o.blink) {
+      line(c, [F(-55, -4), F(-46, -4)], { lw: 3.2, seed: sd + 21, amp: 0.3 });
+      line(c, [F(28, 0), F(37, 0)], { lw: 3.2, seed: sd + 22, amp: 0.3 });
+    } else {
+      line(c, [F(-49, -9), F(-51, -1)], { lw: 3.6, seed: sd + 21, amp: 0.3 });
+      line(c, [F(33, -5), F(32, 3)], { lw: 3.6, seed: sd + 22, amp: 0.3 });
+    }
+    if (o.sick) {
+      // 입꼬리에 문 체온계
+      const a = F(14, 60);
+      const b = F(150, 22);
+      line(c, [a, b], { lw: 16, seed: sd + 95, amp: 0 });
+      line(c, [a, b], { lw: 9, stroke: '#fff', seed: sd + 95, amp: 0 });
+      line(c, [a, [a[0] + (b[0] - a[0]) * 0.72, a[1] + (b[1] - a[1]) * 0.72]], { lw: 3.5, stroke: RED, seed: sd + 95, amp: 0 });
+    }
+    lips(c, HX - 9, HY + (o.open ? 57 : 65), 41, o.open, sd + 30);
+  }
+
+  /* 김재원 머리만 (프로필 사진, 아픈 장면). (x, y) = 머리 가운데
+     o: { blink, open, sick, t } - sick이면 이마에 물수건, 체온계, 땀 */
+  Art.jaewonHead = function (c, x, y, s, o) {
+    o = o || {};
+    const sd = 100;
+    c.save();
+    c.translate(x, y);
+    c.scale(s, s);
+    shape(c, headPts(0, 0, 112, 95), { fill: WHITE, lw: 5, seed: sd + 50, amp: 1.2 });
+    jaewonFace(c, 0, 0, sd, o);
+    if (o.sick) {
+      const t = o.t || 0;
+      // 물수건
+      c.save();
+      c.translate(-6, -80);
+      c.rotate(-0.05);
+      shape(c, [[-74, -20], [72, -24], [76, 20], [-70, 22]], { fill: '#cfe9ff', lw: 4, seed: sd + 60, amp: 1, poly: true });
+      for (let i = -1; i <= 1; i += 2) line(c, [[-64, i * 8], [64, i * 8 - 2]], { lw: 2.5, stroke: '#7fb8e6', seed: sd + 61 + i, amp: 0.6 });
+      c.restore();
+      // 땀
+      const dy = (t * 40) % 30;
+      shape(c, [[112, -40 + dy], [121, -18 + dy], [112, -9 + dy], [103, -18 + dy]], { fill: '#bfe6ff', lw: 3, seed: sd + 62, amp: 0.4 });
+      // 열 김
+      for (let i = 0; i < 3; i++) {
+        const k = (t * 0.7 + i / 3) % 1;
+        c.save();
+        c.globalAlpha *= Math.sin(k * Math.PI);
+        const bx = -50 + i * 50;
+        const by = -118 - k * 50;
+        line(c, [[bx, by], [bx + 8, by - 10], [bx, by - 20], [bx + 8, by - 30]], { lw: 3, stroke: '#ff8a8a', seed: sd + 70 + i, amp: 0.5 });
+        c.restore();
+      }
+    }
+    c.restore();
+  };
+
+  /* 동그란 프로필 사진. who: jaewon | paper | troll | phone | wolf */
+  Art.avatar = function (c, x, y, r, who) {
+    c.save();
+    c.beginPath();
+    c.arc(x, y, r, 0, Math.PI * 2);
+    c.fillStyle = who === 'jaewon' ? '#dff3ff' : '#f2f2f2';
+    c.fill();
+    c.clip();
+    if (who === 'jaewon') {
+      Art.jaewonHead(c, x + r * 0.05, y + r * 0.12, r / 100, {});
+    } else {
+      const s = r / 82;
+      Art.fan(c, x, y + (232 + 6) * s, s, who, { t: 0, seed: 7 });
+    }
+    c.restore();
+    c.beginPath();
+    c.arc(x, y, r, 0, Math.PI * 2);
+    c.strokeStyle = INK;
+    c.lineWidth = 3;
+    c.stroke();
+  };
+
   /* ---------- 김재원 캐릭터 (정면) ----------
      (x, y) = 몸통 아래 가운데. pose: down | yaho1 | yaho2 | yaho3 | think | shrug | lie | vsign */
   Art.jaewon = function (c, x, y, s, pose, t, o) {
@@ -438,20 +533,7 @@
     // 머리
     shape(c, headPts(HX, HY, HW, HH), { fill: WHITE, lw: 5, seed: sd + 50, amp: 1.2 });
 
-    // 얼굴: 길고 가는 눈썹(안쪽 끝만 살짝 꺾임), 콕 찍은 작은 눈, 아래쪽 큰 빨간 입술.
-    // 전부 왼쪽으로 조금 치우쳐 있다
-    const F = (px, py) => [HX + px, HY + py];
-    line(c, [F(-95, -25), F(-40, -23), F(-19, -21), F(-12, -17)], { lw: 3.2, seed: sd + 20, amp: 0.5 });
-    line(c, [F(94, -22), F(32, -21), F(24, -19), F(21, -13)], { lw: 3.2, seed: sd + 23, amp: 0.5 });
-    if (o.blink) {
-      line(c, [F(-55, -4), F(-46, -4)], { lw: 3.2, seed: sd + 21, amp: 0.3 });
-      line(c, [F(28, 0), F(37, 0)], { lw: 3.2, seed: sd + 22, amp: 0.3 });
-    } else {
-      line(c, [F(-49, -9), F(-51, -1)], { lw: 3.6, seed: sd + 21, amp: 0.3 });
-      line(c, [F(33, -5), F(32, 3)], { lw: 3.6, seed: sd + 22, amp: 0.3 });
-    }
-    const open = pose === 'shrug' || o.open;
-    lips(c, HX - 9, HY + (open ? 57 : 65), 41, open, sd + 30);
+    jaewonFace(c, HX, HY, sd, { blink: o.blink, open: pose === 'shrug' || o.open });
     c.restore();
   };
 
@@ -1119,5 +1201,316 @@
       c.stroke();
     }
     c.restore();
+  };
+  /* ---------- 엔딩: 몸살 난 밤 ----------
+     bottom = 대화창 윗선 */
+  Art.sickBed = function (c, W, H, t, bottom) {
+    const cx = W / 2;
+    c.fillStyle = '#f1f1f8';
+    c.fillRect(0, 0, W, H);
+    const hs = 1.25;
+    const HY = bottom - 400;
+    // 창문 + 달
+    const wx = Math.max(140, cx - 560);
+    shape(c, [[wx - 100, 112], [wx + 100, 110], [wx + 102, 310], [wx - 98, 312]], { fill: '#2b3566', lw: 5, seed: 1201, amp: 1.2, poly: true });
+    dot(c, wx + 38, 168, 32, '#ffe27a');
+    dot(c, wx + 52, 158, 30, '#2b3566');
+    [[-60, 150], [-20, 240], [-70, 270], [10, 190], [70, 260]].forEach((p, i) => {
+      const tw = 0.5 + 0.5 * Math.sin(t * 3 + i * 1.7);
+      dot(c, wx + p[0], p[1], 2.5 + tw * 2, '#fff7c2');
+    });
+    line(c, [[wx, 112], [wx, 310]], { lw: 5, seed: 1202 });
+    line(c, [[wx - 100, 210], [wx + 100, 210]], { lw: 5, seed: 1203 });
+    // 침대 머리판
+    shape(
+      c,
+      [[cx - 300, HY + 120], [cx - 300, HY - 170], [cx - 250, HY - 230], [cx + 250, HY - 230], [cx + 300, HY - 170], [cx + 300, HY + 120]],
+      { fill: '#e9c896', lw: 5, seed: 1204, amp: 1.4 }
+    );
+    // 베개
+    shape(c, ell(cx, HY + 40, 220, 84, 14, 0.8), { fill: '#fff', lw: 5, seed: 1205, amp: 1.4 });
+    // 머리 (덜덜)
+    const shiver = Math.sin(t * 40) * 1.6;
+    Art.jaewonHead(c, cx + shiver, HY, hs, { sick: true, t: t });
+    // 이불 (숨 쉬듯 오르내림)
+    const top = HY + 95 * hs * 0.94 + Math.sin(t * 2.2) * 3;
+    const blanket = [
+      [cx - 340, top + 14],
+      [cx - 220, top - 2],
+      [cx - 90, top + 8],
+      [cx + 40, top - 2],
+      [cx + 190, top + 10],
+      [cx + 340, top + 2],
+      [cx + 350, bottom + 300],
+      [cx - 350, bottom + 300],
+    ];
+    shape(c, blanket, { fill: '#ffd6e0', lw: 5, seed: 1206, amp: 1.2, poly: true });
+    shape(c, blanket.slice(0, 6).concat([[cx + 342, top + 48], [cx - 342, top + 58]]), { fill: '#fff', lw: 4, seed: 1207, amp: 1, poly: true });
+    for (let i = 0; i < 5; i++) {
+      for (let j = 0; j < 3; j++) {
+        Art.heart(c, cx - 260 + i * 130 + (j % 2) * 65, top + 120 + j * 110, 13, '#ff9fb4');
+      }
+    }
+    Art.text(c, '39.2℃', cx + 150 * hs + 70, HY + 22 * hs - 4, 40, { color: RED, rot: -0.12 });
+    Art.text(c, '끄응...', cx - 250, HY - 150 + Math.sin(t * 2) * 4, 50, { rot: -0.12 });
+  };
+
+  /* ---------- 엔딩: 네이퍼 팬카페 ----------
+     o: { step: write | post | stamp, el: 그 장면이 시작되고 지난 초, bottom: 대화창 윗선, data: D.cafe }
+     돌려주는 값: { clicked, comments, stamped } (효과음 타이밍용) */
+  const GREEN = '#1ec760';
+  const GRAY = '#8a8a8a';
+  function cafeText(c, str, x, y, size, o) {
+    o = o || {};
+    Art.text(c, str, x, y, size, {
+      align: o.align || 'left',
+      color: o.color || INK,
+      bold: !!o.bold,
+      weight: o.bold ? 400 : 700,
+      rot: o.rot,
+    });
+  }
+  function cafeWidth(c, str, size, bold) {
+    c.save();
+    c.font = (bold ? 400 : 700) + ' ' + size + 'px ' + (bold ? Art.FONT_BOLD : Art.FONT_HAND);
+    const w = c.measureText(str).width;
+    c.restore();
+    return w;
+  }
+  function box(c, x0, y0, x1, y1, o) {
+    o = o || {};
+    shape(c, [[x0, y0], [x1, y0], [x1, y1], [x0, y1]], {
+      fill: o.fill || '#fff',
+      stroke: o.stroke === undefined ? INK : o.stroke,
+      lw: o.lw || 3,
+      seed: o.seed || 1300,
+      amp: o.amp == null ? 0.8 : o.amp,
+      poly: true,
+    });
+  }
+  function pointer(c, x, y, s) {
+    c.save();
+    c.translate(x, y);
+    c.scale(s, s);
+    shape(c, [[0, 0], [0, 36], [9, 28], [16, 42], [23, 39], [16, 25], [28, 25]], { fill: '#fff', lw: 3, seed: 1399, amp: 0.3, poly: true });
+    c.restore();
+  }
+
+  Art.cafe = function (c, W, H, t, o) {
+    const D = o.data;
+    const el = o.el;
+    const out = { clicked: false, comments: 0, stamped: false };
+    c.fillStyle = '#f4f6f4';
+    c.fillRect(0, 0, W, H);
+    const top = 104;
+    const aw = W - 60;
+    const ah = o.bottom - 30 - top;
+    const wide = aw >= 1150;
+    const VW = wide ? 1500 : 980;
+    const VH = 860;
+    const sc = Math.min(aw / VW, ah / VH);
+    c.save();
+    c.translate((W - VW * sc) / 2, top + Math.max(0, (ah - VH * sc) / 2));
+    c.scale(sc, sc);
+
+    // 브라우저 창
+    box(c, 0, 0, VW, VH, { lw: 5, seed: 1301, amp: 1.4 });
+    box(c, 0, 0, VW, 56, { fill: '#efefef', lw: 4, seed: 1302, amp: 0.8 });
+    ['#ff6159', '#ffbd2e', '#28c941'].forEach((col, i) => {
+      dot(c, 28 + i * 26, 28, 8, col);
+    });
+    cafeText(c, '네이퍼', 110, 29, 30, { bold: true, color: GREEN });
+    cafeText(c, '카페', 110 + cafeWidth(c, '네이퍼 ', 30, true), 29, 30, { bold: true });
+    box(c, 290, 12, Math.min(820, VW - 30), 44, { lw: 2.5, seed: 1303, amp: 0.5 });
+    cafeText(c, 'cafe.neiper.com/jaewon', 310, 29, 22, { color: GRAY });
+
+    // 배너
+    c.save();
+    c.beginPath();
+    c.rect(0, 56, VW, 130);
+    c.clip();
+    c.fillStyle = '#8fdcf7';
+    c.fillRect(0, 56, VW, 130);
+    [[0.42, 84, 50], [0.6, 74, 40], [0.86, 92, 56]].forEach((cl, i) => {
+      const x = VW * cl[0] + Math.sin(t * 0.4 + i) * 12;
+      shape(c, ell(x, cl[1], cl[2], cl[2] * 0.42, 12, 0.85), { fill: '#fff', lw: 3, seed: 1310 + i, amp: 1.4 });
+    });
+    shape(c, [[-10, 200], [-10, 160], [VW * 0.3, 128], [VW * 0.62, 146], [VW + 10, 112], [VW + 10, 200]], { fill: '#a6e04f', lw: 4, seed: 1314, amp: 1.2 });
+    Art.jaewon(c, VW - 210, 222, 0.3, 'yaho1', t, {});
+    for (let i = 0; i < 7; i++) {
+      const k = (t * 0.12 + i / 7) % 1;
+      const px = ((i * 211) % VW) + k * 160;
+      const py = 50 + k * 150;
+      c.save();
+      c.translate(px, py);
+      c.rotate(t * 1.5 + i);
+      shape(c, ell(0, 0, 10, 6, 8), { fill: '#ffc2d1', lw: 2, seed: 1320 + i, amp: 0.3 });
+      c.restore();
+    }
+    c.restore();
+    cafeText(c, D.name, 40, 118, 64);
+    line(c, [[0, 186], [VW, 186]], { lw: 4, seed: 1330, amp: 0.6 });
+
+    // 메뉴
+    let mxp = 30;
+    D.menu.forEach((m, i) => {
+      const on = m === D.board;
+      if (i > 0) {
+        cafeText(c, '·', mxp + 8, 214, 24, { color: GRAY });
+        mxp += 30;
+      }
+      cafeText(c, m, mxp, 214, 24, { color: on ? GREEN : INK, bold: on });
+      const w = cafeWidth(c, m, 24, on);
+      if (on) line(c, [[mxp, 234], [mxp + w, 234]], { lw: 4, stroke: GREEN, seed: 1331, amp: 0.4 });
+      mxp += w + 6;
+    });
+    line(c, [[0, 242], [VW, 242]], { lw: 2.5, stroke: '#cfcfcf', seed: 1332, amp: 0.4 });
+
+    // 왼쪽 카페정보
+    if (wide) {
+      const x0 = 24;
+      line(c, [[x0, 262], [x0 + 150, 262]], { lw: 5, seed: 1340, amp: 0.3 });
+      cafeText(c, '카페정보', x0 + 75, 288, 24, { align: 'center', bold: true });
+      cafeText(c, '나의활동', x0 + 225, 288, 24, { align: 'center', color: GRAY });
+      line(c, [[x0, 312], [x0 + 300, 312]], { lw: 2, stroke: '#cfcfcf', seed: 1341, amp: 0.3 });
+      Art.avatar(c, x0 + 42, 366, 36, 'jaewon');
+      cafeText(c, '김재원', x0 + 92, 346, 26, { bold: true });
+      const nw = cafeWidth(c, '김재원', 26, true);
+      box(c, x0 + 100 + nw, 333, x0 + 168 + nw, 359, { lw: 2, stroke: '#9ad3a8', seed: 1342, amp: 0.3 });
+      cafeText(c, '매니저', x0 + 134 + nw, 347, 18, { align: 'center', color: '#3a9a55' });
+      cafeText(c, D.opened, x0 + 92, 378, 20, { color: GRAY });
+      cafeText(c, '카페소개', x0 + 92, 404, 20, { color: GRAY });
+      line(c, [[x0, 432], [x0 + 300, 432]], { lw: 2, stroke: '#cfcfcf', seed: 1343, amp: 0.3 });
+      dot(c, x0 + 14, 464, 9, '#ffcf3a');
+      line(c, [[x0 + 14, 455], [x0 + 22, 447]], { lw: 3, stroke: '#3faa4f', seed: 1344, amp: 0.2 });
+      cafeText(c, D.level, x0 + 34, 464, 22);
+      dot(c, x0 + 12, 494, 6, '#7aa7e0');
+      shape(c, ell(x0 + 12, 509, 11, 7, 8), { fill: '#7aa7e0', stroke: null, seed: 1345, amp: 0.2 });
+      cafeText(c, D.members, x0 + 34, 500, 22);
+      cafeText(c, '초대', x0 + 300, 500, 22, { align: 'right', color: '#6a6a6a' });
+      box(c, x0, 530, x0 + 300, 584, { fill: '#5a5a5a', stroke: null, seed: 1346, amp: 0.6 });
+      cafeText(c, '카페 가입하기', x0 + 150, 558, 24, { align: 'center', bold: true, color: '#fff' });
+      box(c, x0, 598, x0 + 300, 652, { lw: 2.5, stroke: '#bdbdbd', seed: 1347, amp: 0.6 });
+      cafeText(c, '카페 채팅', x0 + 150, 626, 24, { align: 'center', bold: true });
+      box(c, x0, 672, x0 + 230, 720, { lw: 2.5, stroke: '#bdbdbd', seed: 1348, amp: 0.6 });
+      box(c, x0 + 236, 672, x0 + 300, 720, { fill: GREEN, stroke: null, seed: 1349, amp: 0.5 });
+      cafeText(c, '검색', x0 + 268, 697, 22, { align: 'center', bold: true, color: '#fff' });
+    }
+
+    // 본문 영역
+    const mx = wide ? 350 : 24;
+    const mr = VW - 24;
+    box(c, mx, 258, mr, VH - 20, { lw: 5, stroke: '#e3e3e3', seed: 1350, amp: 0.6 });
+    const ix = mx + 30;
+    const iw = mr - mx - 60;
+
+    if (o.step === 'write') {
+      const T_TITLE = 0.4;
+      const T_BODY = T_TITLE + D.title.length * 0.07 + 0.35;
+      const bodyLen = D.body.join('').length;
+      const T_MOVE = T_BODY + bodyLen * 0.04 + 0.4;
+      const T_CLICK = T_MOVE + 0.7;
+      const bx = mr - 30 - 120;
+      const pressed = el >= T_CLICK && el < T_CLICK + 0.18;
+      out.clicked = el >= T_CLICK;
+      cafeText(c, '카페 글쓰기', ix, 302, 40, { bold: true });
+      box(c, bx, 280 + (pressed ? 3 : 0), bx + 120, 326 + (pressed ? 3 : 0), { fill: pressed ? '#14a24c' : GREEN, stroke: null, seed: 1351, amp: 0.5 });
+      cafeText(c, '등록', bx + 60, 304 + (pressed ? 3 : 0), 26, { align: 'center', bold: true, color: '#fff' });
+      box(c, ix, 346, ix + 300, 394, { lw: 2.5, stroke: '#bdbdbd', seed: 1352, amp: 0.5 });
+      cafeText(c, D.board, ix + 18, 371, 26);
+      cafeText(c, '▾', ix + 280, 371, 24, { align: 'right', color: GRAY });
+      box(c, ix, 410, ix + iw, 462, { lw: 2.5, stroke: '#bdbdbd', seed: 1353, amp: 0.5 });
+      const caret = Math.floor(t * 2.4) % 2 === 0;
+      const nt = Math.max(0, Math.min(D.title.length, Math.floor((el - T_TITLE) / 0.07)));
+      if (nt === 0) cafeText(c, '제목을 입력해 주세요.', ix + 18, 436, 28, { color: '#b5b5b5' });
+      else cafeText(c, D.title.slice(0, nt), ix + 18, 436, 28, { bold: true });
+      if (el < T_BODY && caret) {
+        const cxp = ix + 20 + (nt ? cafeWidth(c, D.title.slice(0, nt), 28, true) : 0);
+        line(c, [[cxp, 420], [cxp, 452]], { lw: 2.5, seed: 1354, amp: 0 });
+      }
+      box(c, ix, 478, ix + iw, VH - 50, { lw: 2.5, stroke: '#bdbdbd', seed: 1355, amp: 0.5 });
+      let left = Math.max(0, Math.floor((el - T_BODY) / 0.04));
+      let lastX = ix + 20;
+      let lastY = 514;
+      D.body.forEach((ln, i) => {
+        if (left <= 0 && i > 0) return;
+        const n = Math.min(ln.length, left);
+        left -= ln.length;
+        const y = 514 + i * 44;
+        if (n > 0) cafeText(c, ln.slice(0, n), ix + 20, y, 28);
+        lastX = ix + 22 + (n > 0 ? cafeWidth(c, ln.slice(0, n), 28, false) : 0);
+        lastY = y;
+      });
+      if (el >= T_BODY && el < T_MOVE && caret) line(c, [[lastX, lastY - 16], [lastX, lastY + 16]], { lw: 2.5, seed: 1356, amp: 0 });
+      // 마우스 커서가 등록 버튼으로
+      const k = Math.max(0, Math.min(1, (el - T_MOVE) / 0.7));
+      const e = k * k * (3 - 2 * k);
+      const px = ix + iw * 0.55 + (bx + 70 - ix - iw * 0.55) * e;
+      const py = VH - 150 + (306 - VH + 150) * e;
+      if (el >= T_MOVE - 0.2) pointer(c, px, py + (pressed ? 3 : 0), 1.2);
+      if (el >= T_CLICK + 0.25) {
+        const a = Math.min(1, (el - T_CLICK - 0.25) / 0.2);
+        c.save();
+        c.globalAlpha *= a;
+        Art.caption(c, '등록되었습니다', ix + iw / 2, VH / 2 + 40, 44, { rot: -0.02, seed: 1357, scale: 0.8 + 0.2 * a });
+        c.restore();
+      }
+    } else {
+      cafeText(c, D.board + ' >', ix, 292, 22, { color: GREEN, bold: true });
+      cafeText(c, D.title, ix, 340, 42, { bold: true });
+      Art.avatar(c, ix + 28, 404, 28, 'jaewon');
+      cafeText(c, '김재원', ix + 68, 392, 24, { bold: true });
+      const nw = cafeWidth(c, '김재원', 24, true);
+      box(c, ix + 76 + nw, 380, ix + 138 + nw, 404, { lw: 2, stroke: '#9ad3a8', seed: 1358, amp: 0.3 });
+      cafeText(c, '매니저', ix + 107 + nw, 393, 17, { align: 'center', color: '#3a9a55' });
+      const views = D.views + Math.floor((o.step === 'stamp' ? 12 : 0) + el * 23);
+      cafeText(c, D.time + '   조회 ' + views.toLocaleString('ko-KR'), ix + 68, 420, 20, { color: GRAY });
+      line(c, [[ix, 450], [ix + iw, 450]], { lw: 2, stroke: '#dcdcdc', seed: 1359, amp: 0.3 });
+      D.body.forEach((ln, i) => cafeText(c, ln, ix, 490 + i * 42, 28));
+      // 댓글
+      const shown = o.step === 'stamp' ? D.comments.length : D.comments.filter((cm, i) => el >= 0.6 + i * 0.6).length;
+      out.comments = shown;
+      line(c, [[ix, 646], [ix + iw, 646]], { lw: 2, stroke: '#dcdcdc', seed: 1360, amp: 0.3 });
+      cafeText(c, '댓글 ' + shown, ix, 676, 24, { bold: true });
+      D.comments.forEach((cm, i) => {
+        if (i >= shown) return;
+        const born = o.step === 'stamp' ? 9 : el - (0.6 + i * 0.6);
+        const pop = Math.min(1, born / 0.18);
+        const x = ix + (i % 2) * (iw / 2);
+        const y = 724 + Math.floor(i / 2) * 64;
+        c.save();
+        c.globalAlpha *= pop;
+        c.translate(0, (1 - pop) * 14);
+        Art.avatar(c, x + 24, y, 24, cm.who);
+        cafeText(c, cm.name, x + 58, y - 13, 20, { bold: true });
+        cafeText(c, cm.text, x + 58, y + 14, 24);
+        c.restore();
+      });
+      if (o.step === 'stamp') {
+        out.stamped = true;
+        Art.stamp(c, ix + iw * 0.74, 520, D.stamp, Math.min(0.74, el / 1.2), -0.18);
+      }
+    }
+    c.restore();
+
+    // 글 쓰는 동안 화면 옆에 이불 뒤집어쓴 재원
+    const margin = (W - VW * sc) / 2;
+    if (o.step === 'write' && margin > 250) {
+      const hx = W - margin / 2;
+      const hy = o.bottom - 120;
+      const hs = Math.min(0.9, (margin - 40) / 230);
+      shape(
+        c,
+        [[hx - 150 * hs, H + 20], [hx - 140 * hs, hy - 40 * hs], [hx - 60 * hs, hy - 150 * hs], [hx + 60 * hs, hy - 150 * hs], [hx + 140 * hs, hy - 40 * hs], [hx + 150 * hs, H + 20]],
+        { fill: '#ffd6e0', lw: 5, seed: 1370, amp: 1.4 }
+      );
+      Art.jaewonHead(c, hx + Math.sin(t * 40) * 1.2, hy, hs, { sick: true, t: t });
+      if (!out.clicked) {
+        const k = Math.floor(t * 6) % 2;
+        Art.text(c, '타닥', hx - 130 * hs + k * 10, hy - 170 * hs, 40, { rot: -0.15 });
+        Art.text(c, '타닥', hx + 120 * hs - k * 10, hy - 150 * hs, 40, { rot: 0.15 });
+      }
+    }
+    return out;
   };
 })();

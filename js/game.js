@@ -1456,6 +1456,11 @@
     const sc = clamp((dialogTop - 150) / 520, 0.9, 1.5);
     const baseY = dialogTop - 150 * sc + 120;
     const talking = ln.who === '재원' && story.shown < ln.text.length;
+    if (ln.scene) {
+      renderScene(ln, t, dialogTop);
+      Art.caption(c, story.label, 24 + lw / 2, 64, 52, { rot: -0.03, seed: 41 });
+      return;
+    }
     if (story.key === 'ending' && ln.who === '시청자들') {
       const ks = ['paper', 'troll', 'phone', 'wolf'];
       ks.forEach((k, i) => {
@@ -1466,6 +1471,30 @@
       });
     }
     Art.jaewon(c, cx, baseY, sc, ln.pose || 'down', t, { long: true, open: talking && frac(t * 5) > 0.5, blink: frac(t * 0.27) > 0.95 });
+  }
+
+  /* 엔딩 컷씬 장면 (몸살 난 밤, 팬카페 공지). 같은 장면이 이어지면 애니메이션도 이어진다 */
+  function renderScene(ln, t, dialogTop) {
+    const key = ln.scene + ':' + (ln.step || '');
+    const now = performance.now();
+    if (story.sceneKey !== key) {
+      story.sceneKey = key;
+      story.sceneT0 = now;
+      story.sfx = { clicked: false, comments: 0, stamped: false };
+    }
+    const el = (now - story.sceneT0) / 1000;
+    if (ln.scene === 'sick') {
+      Art.sickBed(c, W, H, t, dialogTop);
+    } else if (ln.scene === 'cafe') {
+      const ev = Art.cafe(c, W, H, t, { step: ln.step, el: el, bottom: dialogTop, data: D.cafe });
+      const fx = story.sfx;
+      if (ev.clicked && !fx.clicked) A.click();
+      if (ev.comments > fx.comments) A.blip();
+      if (ev.stamped && !fx.stamped) A.ban(true);
+      fx.clicked = ev.clicked;
+      fx.comments = ev.comments;
+      fx.stamped = ev.stamped;
+    }
   }
 
   /* --- 결과 --- */
@@ -1543,6 +1572,7 @@
     if (q.get('auto')) FM.debug.auto = true;
     if (q.get('sloppy')) FM.debug.sloppy = Number(q.get('sloppy'));
     if (q.get('day')) FM.debug.start(Number(q.get('day')), q.get('mode') || 'main');
+    else if (q.get('story')) FM.debug.story(q.get('story'));
   } catch (e) {
     /* 무시 */
   }

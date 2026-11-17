@@ -21,6 +21,8 @@
 
 각 날짜는 스토리 → 연습(튜토리얼) → 본게임 → 결과 순서. 55점 이상이면 다음 날로 넘어간다.
 
+3일차까지 통과하면 엔딩. 3일 내내 야호한 재원이 몸살이 나서, 다음 날 아침 네이퍼 팬카페 방송공지에 휴방 공지를 올린다.
+
 일시정지는 `Esc` 또는 `P`. 스토리는 클릭이나 스페이스로 넘긴다. 화면은 창 크기에 맞춰 가로로 꽉 찬다.
 
 ## 실행
@@ -40,7 +42,7 @@ GitHub Pages로 올리려면 저장소 Settings → Pages → Branch를 `main` /
 ```
 index.html      화면 뼈대
 css/style.css   버튼, 대화창, 결과 카드
-js/data.js      채보, 스토리, 문구, 곡 설정
+js/data.js      채보, 스토리, 문구, 곡 설정, 엔딩 팬카페 글 (D.cafe)
 js/audio.js     소리 (전부 Web Audio 합성, 음원 파일 없음)
 js/art.js       그림 (전부 캔버스에 직접 그림, 이미지 파일 없음)
 js/game.js      판정, 입력, 진행
@@ -60,6 +62,7 @@ fonts/          Jua, Gaegu (SIL Open Font License 1.1)
 - `?day=2` : 2일차 본게임으로 바로 시작
 - `?day=3&mode=tutorial` : 3일차 연습부터
 - `?auto=1&day=1` : 자동 플레이
+- `?story=ending` : 엔딩 컷씬 바로 보기
 
 ## 폰트
 
