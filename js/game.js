@@ -1107,6 +1107,7 @@
     return k + f;
   }
 
+  const COUNT_LEAD = 0.05; // 카운트 숫자를 소리보다 몇 초 먼저 그릴지 (화면 지연 보정)
   const FRONT = 1.18; // 책상 앞 시청자 크기
   const HEAD_Y = 566 + 300 * 1.18; // 책상 앞 시청자 머리 위 (바닥에서부터)
 
@@ -1414,13 +1415,42 @@
       }
     }
 
-    // 시작 카운트
-    if (b >= 0 && b < g.lead) {
-      const i = Math.floor(b);
-      const k = frac(b);
-      const words = ['하나', '둘', '셋', '넷'];
-      c.globalAlpha = k > 0.7 ? (1 - k) / 0.3 : 1;
-      Art.caption(c, words[i] || '', W / 2, H * 0.36, 120, { scale: 1.25 - 0.25 * ease(k * 4), rot: i % 2 ? 0.04 : -0.04, seed: 20 + i });
+    // 시작 카운트: 숫자가 위에서 떨어져서 '딱' 소리 나는 순간에 착지한다.
+    // 화면은 소리보다 조금 늦게 보이니까 COUNT_LEAD만큼 당겨서 그린다.
+    const bc = b + COUNT_LEAD / g.beatSec;
+    const words = ['하나', '둘', '셋', '넷'];
+    for (let i = 0; i < g.lead; i++) {
+      const k = bc - i; // 0 = 착지 (소리 나는 박)
+      if (k < (reduceMotion ? 0 : -0.3) || k > 0.78) continue;
+      const x = W / 2;
+      const y = H * 0.36;
+      c.save();
+      if (k < 0) {
+        const u = (k + 0.3) / 0.3;
+        c.globalAlpha = Math.min(1, u * 2.5);
+        c.translate(x, y - 240 * (1 - u * u));
+      } else {
+        const sq = Math.max(0, 1 - k / 0.16);
+        c.globalAlpha = k > 0.56 ? Math.max(0, (0.78 - k) / 0.22) : 1;
+        c.translate(x, y + 70);
+        c.scale(1 + 0.24 * sq, 1 - 0.2 * sq);
+        c.translate(0, -70);
+        if (k < 0.24 && !reduceMotion) {
+          // 착지 충격선: 상자 아래 양쪽 모서리에서 바깥으로
+          const a = 1 - k / 0.24;
+          c.font = '400 120px ' + Art.FONT_BOLD;
+          const hw = (c.measureText(words[i] || '').width + 60) / 2 + 14;
+          for (let j = -1; j <= 1; j += 2) {
+            for (let m = 0; m < 3; m++) {
+              const x0 = j * (hw + (1 - a) * 18);
+              const y0 = 70 - m * 26;
+              Art.line(c, [[x0, y0], [x0 + j * (26 + 30 * a - m * 6), y0 + (1 - m) * 10]], { lw: 6, seed: 30 + m + j * 3, amp: 0.4 });
+            }
+          }
+        }
+      }
+      Art.caption(c, words[i] || '', 0, 0, 120, { rot: i % 2 ? 0.04 : -0.04, seed: 20 + i });
+      c.restore();
     }
     c.restore();
   }
