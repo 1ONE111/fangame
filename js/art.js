@@ -1,0 +1,1016 @@
+/* 김재원 팬미팅 연습게임 - 그림 (캔버스에 손그림 느낌으로 직접 그림) */
+(function () {
+  'use strict';
+  const FM = (window.FM = window.FM || {});
+  const Art = (FM.art = {});
+
+  const INK = '#161616';
+  const RED = '#e60012';
+  const WHITE = '#ffffff';
+  Art.INK = INK;
+  Art.RED = RED;
+  Art.FONT_HAND = '"Gaegu", "Jua", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif';
+  Art.FONT_BOLD = '"Jua", "Gaegu", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif';
+
+  /* ---------- 손떨림 선 ---------- */
+  let boil = 0;
+  Art.setBoil = function (n) {
+    boil = n;
+  };
+  function hash(n) {
+    const x = Math.sin(n * 127.1 + boil * 269.5 + 11.3) * 43758.5453;
+    return x - Math.floor(x);
+  }
+  function jit(seed, amp) {
+    return (hash(seed) - 0.5) * 2 * amp;
+  }
+  function wob(pts, seed, amp) {
+    if (!amp) return pts;
+    const out = new Array(pts.length);
+    for (let i = 0; i < pts.length; i++) {
+      out[i] = [pts[i][0] + jit(seed + i * 2.13, amp), pts[i][1] + jit(seed + i * 2.13 + 0.77, amp)];
+    }
+    return out;
+  }
+  function trace(c, pts, closed) {
+    const n = pts.length;
+    if (n < 2) return;
+    if (closed) {
+      const p0 = pts[n - 1];
+      const p1 = pts[0];
+      c.moveTo((p0[0] + p1[0]) / 2, (p0[1] + p1[1]) / 2);
+      for (let i = 0; i < n; i++) {
+        const a = pts[i];
+        const b = pts[(i + 1) % n];
+        c.quadraticCurveTo(a[0], a[1], (a[0] + b[0]) / 2, (a[1] + b[1]) / 2);
+      }
+      c.closePath();
+    } else {
+      c.moveTo(pts[0][0], pts[0][1]);
+      for (let i = 1; i < n - 1; i++) {
+        const a = pts[i];
+        const b = pts[i + 1];
+        c.quadraticCurveTo(a[0], a[1], (a[0] + b[0]) / 2, (a[1] + b[1]) / 2);
+      }
+      c.lineTo(pts[n - 1][0], pts[n - 1][1]);
+    }
+  }
+  function tracePoly(c, pts) {
+    c.moveTo(pts[0][0], pts[0][1]);
+    for (let i = 1; i < pts.length; i++) c.lineTo(pts[i][0], pts[i][1]);
+    c.closePath();
+  }
+  /* 채워진 도형 */
+  function shape(c, pts, o) {
+    o = o || {};
+    const P = wob(pts, o.seed || 1, o.amp == null ? 1.5 : o.amp);
+    c.beginPath();
+    if (o.poly) tracePoly(c, P);
+    else trace(c, P, o.closed !== false);
+    c.lineJoin = 'round';
+    c.lineCap = 'round';
+    if (o.fill) {
+      c.fillStyle = o.fill;
+      c.fill();
+    }
+    if (o.stroke !== null) {
+      c.strokeStyle = o.stroke || INK;
+      c.lineWidth = o.lw || 5;
+      c.stroke();
+    }
+    return P;
+  }
+  function line(c, pts, o) {
+    o = o || {};
+    const P = wob(pts, o.seed || 1, o.amp == null ? 1.2 : o.amp);
+    c.beginPath();
+    trace(c, P, false);
+    c.lineJoin = 'round';
+    c.lineCap = 'round';
+    c.strokeStyle = o.stroke || INK;
+    c.lineWidth = o.lw || 5;
+    c.stroke();
+  }
+  /* 테두리 있는 대롱 (팔, 다리) */
+  function tube(c, pts, w, o) {
+    o = o || {};
+    const lw = o.lw || 5;
+    const P = wob(pts, o.seed || 1, o.amp == null ? 1.4 : o.amp);
+    c.lineCap = 'round';
+    c.lineJoin = 'round';
+    c.beginPath();
+    trace(c, P, false);
+    c.strokeStyle = o.stroke || INK;
+    c.lineWidth = w + lw * 2;
+    c.stroke();
+    c.beginPath();
+    trace(c, P, false);
+    c.strokeStyle = o.fill || WHITE;
+    c.lineWidth = w;
+    c.stroke();
+  }
+  /* 몸통과 이어지는 대롱: 몸통 안쪽으로는 테두리를 그리지 않는다 */
+  function limb(c, bodyP, pts, w, o) {
+    o = o || {};
+    const lw = o.lw || 5;
+    const P = wob(pts, o.seed || 1, o.amp == null ? 1.4 : o.amp);
+    c.lineCap = 'round';
+    c.lineJoin = 'round';
+    c.save();
+    c.beginPath();
+    c.rect(-4000, -4000, 8000, 8000);
+    trace(c, bodyP, true);
+    c.clip('evenodd');
+    c.beginPath();
+    trace(c, P, false);
+    c.strokeStyle = o.stroke || INK;
+    c.lineWidth = w + lw * 2;
+    c.stroke();
+    c.restore();
+    c.beginPath();
+    trace(c, P, false);
+    c.strokeStyle = o.fill || WHITE;
+    c.lineWidth = w;
+    c.stroke();
+  }
+  function ell(cx, cy, rx, ry, n, pow) {
+    n = n || 12;
+    const pts = [];
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2 - Math.PI / 2;
+      let x = Math.cos(a);
+      let y = Math.sin(a);
+      if (pow) {
+        x = Math.sign(x) * Math.pow(Math.abs(x), pow);
+        y = Math.sign(y) * Math.pow(Math.abs(y), pow);
+      }
+      pts.push([cx + x * rx, cy + y * ry]);
+    }
+    return pts;
+  }
+  function dot(c, x, y, r, col) {
+    c.beginPath();
+    c.arc(x, y, r, 0, Math.PI * 2);
+    c.fillStyle = col || INK;
+    c.fill();
+  }
+  Art.shape = shape;
+  Art.line = line;
+  Art.tube = tube;
+  Art.ell = ell;
+  Art.dot = dot;
+
+  /* ---------- 글자 ---------- */
+  Art.text = function (c, str, x, y, size, o) {
+    o = o || {};
+    c.save();
+    c.translate(x, y);
+    if (o.rot) c.rotate(o.rot);
+    c.font = (o.weight || 700) + ' ' + size + 'px ' + (o.bold ? Art.FONT_BOLD : Art.FONT_HAND);
+    c.textAlign = o.align || 'center';
+    c.textBaseline = o.base || 'middle';
+    if (o.outline) {
+      c.lineJoin = 'round';
+      c.strokeStyle = o.outline;
+      c.lineWidth = o.outlineW || size * 0.22;
+      c.strokeText(str, 0, 0);
+    }
+    c.fillStyle = o.color || INK;
+    c.fillText(str, 0, 0);
+    c.restore();
+  };
+
+  /* 검은 상자 자막 ("야호" 스타일) */
+  Art.caption = function (c, str, x, y, size, o) {
+    o = o || {};
+    c.save();
+    c.translate(x, y);
+    if (o.rot) c.rotate(o.rot);
+    if (o.scale) c.scale(o.scale, o.scale);
+    c.font = '400 ' + size + 'px ' + Art.FONT_BOLD;
+    const w = c.measureText(str).width + size * 0.5;
+    const h = size * 1.28;
+    const sd = o.seed || 3;
+    shape(
+      c,
+      [
+        [-w / 2, -h / 2],
+        [0, -h / 2 - 2],
+        [w / 2, -h / 2],
+        [w / 2 + 3, 0],
+        [w / 2, h / 2],
+        [0, h / 2 + 2],
+        [-w / 2, h / 2],
+        [-w / 2 - 3, 0],
+      ],
+      { fill: o.bg || '#0c0c0c', stroke: null, seed: sd, amp: 2.2, poly: true }
+    );
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    c.fillStyle = o.color || '#fff';
+    c.fillText(str, 0, size * 0.06);
+    c.restore();
+    return w;
+  };
+
+  /* 말풍선 */
+  Art.bubble = function (c, str, x, y, size, o) {
+    o = o || {};
+    c.save();
+    c.translate(x, y);
+    if (o.scale != null) c.scale(o.scale, o.scale);
+    c.font = '700 ' + size + 'px ' + Art.FONT_HAND;
+    const w = Math.max(c.measureText(str).width + size * 0.9, size * 2);
+    const h = size * 1.5;
+    const pts = ell(0, 0, w / 2, h / 2, 12, 0.72);
+    shape(c, pts, { fill: '#fff', lw: 4, seed: o.seed || 5, amp: 1.6 });
+    const dir = o.dir || -1;
+    shape(
+      c,
+      [
+        [dir * w * 0.12, h * 0.38],
+        [dir * w * 0.3, h * 0.82],
+        [dir * w * 0.3, h * 0.36],
+      ],
+      { fill: '#fff', lw: 4, seed: 9, amp: 1, poly: true }
+    );
+    c.fillStyle = '#fff';
+    c.fillRect(dir * w * 0.12 - 4, h * 0.2, 24 * (dir > 0 ? 1 : 1), 12);
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    c.fillStyle = o.color || INK;
+    c.fillText(str, 0, size * 0.04);
+    c.restore();
+  };
+
+  /* 빨간 입술 */
+  function lips(c, x, y, w, open, seed) {
+    const h = w * 0.52;
+    const top = [
+      [x - w, y],
+      [x - w * 0.55, y - h * 0.95],
+      [x - w * 0.18, y - h * 0.75],
+      [x, y - h * 0.42],
+      [x + w * 0.18, y - h * 0.75],
+      [x + w * 0.55, y - h * 0.95],
+      [x + w, y],
+    ];
+    const gap = open ? h * 0.75 : 0;
+    const upper = top.concat([
+      [x + w * 0.5, y + gap * 0.15],
+      [x, y + gap * 0.22 + 2],
+      [x - w * 0.5, y + gap * 0.15],
+    ]);
+    const lower = [
+      [x - w, y],
+      [x - w * 0.5, y + gap * 0.85],
+      [x, y + gap + 1],
+      [x + w * 0.5, y + gap * 0.85],
+      [x + w, y],
+      [x + w * 0.62, y + gap + h * 0.78],
+      [x, y + gap + h * 1.02],
+      [x - w * 0.62, y + gap + h * 0.78],
+    ];
+    if (open) {
+      shape(
+        c,
+        [
+          [x - w, y],
+          [x, y - 2],
+          [x + w, y],
+          [x + w * 0.5, y + gap],
+          [x - w * 0.5, y + gap],
+        ],
+        { fill: '#fff', lw: 2.5, seed: seed + 3, amp: 0.6 }
+      );
+    }
+    shape(c, lower, { fill: RED, lw: 2.5, seed: seed + 1, amp: 0.8 });
+    shape(c, upper, { fill: RED, lw: 2.5, seed: seed + 2, amp: 0.8 });
+  }
+
+  /* ---------- 김재원 캐릭터 (정면) ----------
+     (x, y) = 몸통 아래 가운데. pose: down | yaho1 | yaho2 | yaho3 | think | shrug | lie | vsign */
+  Art.jaewon = function (c, x, y, s, pose, t, o) {
+    o = o || {};
+    t = t || 0;
+    c.save();
+    c.translate(x, y);
+    c.scale(s, s);
+    if (pose === 'lie') {
+      c.translate(40, -70);
+      c.rotate(-1.25);
+    }
+    const sd = 100;
+    const bottom = o.long ? 420 : 0;
+    const body = wob(
+      [
+        [-50, bottom],
+        [-52, -80],
+        [-54, -150],
+        [-66, -178],
+        [-86, -202],
+        [-90, -246],
+        [-82, -294],
+        [-46, -316],
+        [0, -320],
+        [46, -316],
+        [82, -294],
+        [90, -246],
+        [86, -202],
+        [66, -178],
+        [54, -150],
+        [52, -80],
+        [50, bottom],
+        [0, bottom + 6],
+      ],
+      sd,
+      1.6
+    );
+
+    // 다리
+    if (!o.long) {
+      const lk = pose === 'lie' ? 14 : 0;
+      tube(c, [[-24, -14], [-27, 40], [-30 - lk, 82]], 30, { seed: sd + 40 });
+      tube(c, [[24, -14], [27, 40], [30 + lk * 2, 82 - lk]], 30, { seed: sd + 44 });
+    }
+
+    c.beginPath();
+    trace(c, body, true);
+    c.fillStyle = WHITE;
+    c.fill();
+    c.strokeStyle = INK;
+    c.lineWidth = 5;
+    c.lineJoin = 'round';
+    c.stroke();
+    if (!o.long) {
+      // 다리와 몸통 이음새 지우기
+      c.fillStyle = WHITE;
+      c.fillRect(-38, -12, 28, 16);
+      c.fillRect(10, -12, 28, 16);
+    }
+
+    // 팔
+    const AW = 24;
+    const sw = Math.sin(t * 7);
+    const sw2 = Math.sin(t * 7 + 1.7);
+    const arm = (pts, seed, amp) => limb(c, body, pts, AW, { seed: seed, amp: amp });
+    const mir = (pts) => pts.map((p) => [-p[0], p[1]]);
+    if (pose === 'yaho1') {
+      arm([[-50, -150], [-76, -235], [-82 + sw * 4, -335], [-78 + sw * 9, -432]], sd + 10);
+      arm([[50, -150], [76, -235], [82 + sw2 * 4, -335], [78 + sw2 * 9, -432]], sd + 14);
+    } else if (pose === 'yaho2') {
+      const wv = (i, ph) => Math.sin(t * 9 + i * 1.3 + ph) * 16;
+      arm([[-50, -150], [-96 + wv(0, 0), -214], [-70 + wv(1, 0), -288], [-104 + wv(2, 0), -358], [-80 + wv(3, 0), -428]], sd + 10);
+      arm([[50, -150], [96 + wv(0, 2), -214], [70 + wv(1, 2), -288], [104 + wv(2, 2), -358], [80 + wv(3, 2), -428]], sd + 14);
+    } else if (pose === 'yaho3') {
+      for (let k = 0; k < 3; k++) {
+        const ph = k * 2.1;
+        const sp = 46 * k;
+        const wv = (i) => Math.sin(t * 13 + i * 1.5 + ph) * (20 + k * 6);
+        const L = [[-50, -150], [-100 - sp * 0.5 + wv(0), -205 - k * 4], [-88 - sp + wv(1), -285], [-126 - sp * 0.9 + wv(2), -352], [-98 - sp * 1.1 + wv(3), -420 + k * 22]];
+        const Rr = [[50, -150], [100 + sp * 0.5 + wv(4), -205 - k * 4], [88 + sp + wv(5), -285], [126 + sp * 0.9 + wv(6), -352], [98 + sp * 1.1 + wv(7), -420 + k * 22]];
+        arm(L, sd + 10 + k * 7, 4);
+        arm(Rr, sd + 14 + k * 7, 4);
+        // 털 같은 떨림선
+        [L, Rr].forEach((pts, si) => {
+          for (let i = 1; i < pts.length; i++) {
+            const p = pts[i];
+            const q = pts[i - 1];
+            for (let m = 0; m < 3; m++) {
+              const u = (m + 0.5) / 3;
+              const px = q[0] + (p[0] - q[0]) * u;
+              const py = q[1] + (p[1] - q[1]) * u;
+              const side = si === 0 ? -1 : 1;
+              line(c, [[px + side * 14, py], [px + side * (24 + jit(sd + i * 9 + m + k * 31, 5)), py - 6]], { lw: 2.5, seed: sd + 60 + i * 5 + m + k * 13, amp: 2 });
+            }
+          }
+        });
+      }
+    } else if (pose === 'think') {
+      arm([[-50, -150], [-112, -170], [-134, -232], [-112 + sw * 3, -288 + sw * 4]], sd + 10);
+      arm([[50, -140], [66, -92], [62, -44]], sd + 14);
+    } else if (pose === 'shrug') {
+      const up = sw * 4;
+      arm([[-50, -150], [-102, -132], [-122, -186 + up]], sd + 10);
+      arm([[50, -150], [102, -132], [122, -186 + up]], sd + 14);
+      [-1, 1].forEach((sgn) => {
+        for (let f = -1; f <= 1; f++) {
+          line(c, [[sgn * 122 + f * 8, -198 + up], [sgn * 122 + f * 15, -216 + up]], { lw: 4, seed: sd + 70 + f + sgn * 3, amp: 0.8 });
+        }
+      });
+    } else if (pose === 'vsign') {
+      arm([[-50, -150], [-104, -180], [-112, -246]], sd + 10);
+      line(c, [[-116, -256], [-128, -286]], { lw: 5, seed: sd + 71 });
+      line(c, [[-108, -256], [-100, -288]], { lw: 5, seed: sd + 72 });
+      arm([[50, -140], [66, -92], [62, -44]], sd + 14);
+    } else if (pose === 'lie') {
+      tube(c, [[-50, -140], [-20, -110], [26, -116]], AW, { seed: sd + 10 });
+      arm([[50, -140], [70, -95], [64, -50]], sd + 14);
+    } else {
+      arm([[-50, -140], [-66, -92], [-62, -44]], sd + 10);
+      arm([[50, -140], [66, -92], [62, -44]], sd + 14);
+    }
+
+    // 얼굴
+    line(c, [[-38, -279], [2, -282], [42, -280]], { lw: 4, seed: sd + 20, amp: 1 });
+    if (o.blink) {
+      line(c, [[-25, -263], [-14, -263]], { lw: 3.5, seed: sd + 21, amp: 0.5 });
+      line(c, [[16, -264], [27, -264]], { lw: 3.5, seed: sd + 22, amp: 0.5 });
+    } else {
+      line(c, [[-22, -263], [-15, -263]], { lw: 4.5, seed: sd + 21, amp: 0.5 });
+      line(c, [[18, -264], [25, -264]], { lw: 4.5, seed: sd + 22, amp: 0.5 });
+    }
+    lips(c, 3, pose === 'shrug' || o.open ? -236 : -228, 33, pose === 'shrug' || o.open, sd + 30);
+    c.restore();
+  };
+
+  /* ---------- 김재원 (뒷모습, 게임 화면) ----------
+     (x, y) = 의자 앉는 면 가운데.
+     st: { anim, u(0..1), dir, bob, held } */
+  Art.jaewonBack = function (c, x, y, s, st) {
+    st = st || {};
+    const anim = st.anim || 'idle';
+    const u = st.u == null ? 1 : st.u;
+    const bob = st.bob || 0;
+    c.save();
+    c.translate(x, y);
+    c.scale(s, s);
+    const sd = 300;
+
+    // 의자
+    line(c, [[-46, 6], [-58, 92]], { lw: 5, seed: sd + 1 });
+    line(c, [[46, 6], [58, 92]], { lw: 5, seed: sd + 2 });
+    line(c, [[-52, 58], [52, 58]], { lw: 4, seed: sd + 3 });
+    // 다리
+    tube(c, [[-28, -6], [-34, 44], [-38, 86]], 26, { seed: sd + 5 });
+    tube(c, [[28, -6], [34, 44], [38, 86]], 26, { seed: sd + 6 });
+    shape(c, ell(0, 4, 78, 15, 10), { fill: '#fff', seed: sd + 7, amp: 1.2 });
+
+    // 팔 (책상 쪽으로 뻗음 = 화면 위쪽)
+    let hy = bob * 0.4;
+    let L = [[-46, -122 + hy], [-112, -236], [-138, -366]];
+    let Rr = [[46, -122 + hy], [112, -236], [138, -366]];
+    let headDx = 0;
+    let headDy = -bob;
+    let headRot = 0;
+    let headSq = 1;
+    let extra = null;
+
+    if (anim === 'sign') {
+      const k = Math.min(1, u * 5);
+      const sc = u < 0.8 ? 1 : 0;
+      const hx = 30 + Math.sin(u * 34) * 26 * sc;
+      const hyy = -410 + Math.cos(u * 27) * 7 * sc;
+      Rr = [[46, -122], [118 - 20 * k, -250], [138 + (hx - 138) * k, -366 + (hyy + 366) * k]];
+      extra = 'pen';
+      headDx = 4 * k;
+      headRot = 0.03 * k;
+    } else if (anim === 'ban') {
+      const d = st.dir || 1;
+      const k = Math.sin(Math.min(1, u * 1.6) * Math.PI * 0.5);
+      const back = u > 0.6 ? (u - 0.6) / 0.4 : 0;
+      const hx = (-d * 90 + d * 330 * k) * (1 - back) + d * 138 * back;
+      const hyy = (-455 - Math.sin(k * Math.PI) * 30) * (1 - back) + -366 * back;
+      const armPts = [[d * 46, -122], [d * 60 + hx * 0.45, -270], [hx, hyy]];
+      if (d > 0) Rr = armPts;
+      else L = armPts;
+      headRot = d * 0.12 * (1 - back);
+      headDx = d * 10 * (1 - back);
+      extra = 'swipe';
+    } else if (anim === 'photo') {
+      const k = Math.min(1, u * 6);
+      const out = u > 0.75 ? (u - 0.75) / 0.25 : 0;
+      const m = k * (1 - out);
+      L = [[-46, -122], [-128 - 18 * m, -236 - 18 * m], [-138 - 24 * m, -366 + 92 * m]];
+      Rr = [[46, -122], [128 + 18 * m, -236 - 18 * m], [138 + 24 * m, -366 + 92 * m]];
+      headRot = (st.dir || 1) * 0.1 * m;
+      headDy -= 10 * m;
+      extra = m > 0.5 ? 'v' : null;
+    } else if (anim === 'howl') {
+      const k = Math.min(1, u * 8);
+      const w1 = Math.sin(st.t * 16) * 12;
+      const w2 = Math.sin(st.t * 16 + 2) * 12;
+      L = [[-46, -122], [-140, -250 - 40 * k], [-150 + w1, -366 - 110 * k]];
+      Rr = [[46, -122], [140, -250 - 40 * k], [150 + w2, -366 - 110 * k]];
+      headDy -= 30 * k + Math.sin(st.t * 30) * 2;
+      headSq = 1 + 0.07 * k;
+    } else if (anim === 'oops') {
+      const k = Math.sin(Math.min(1, u) * Math.PI);
+      headDy += 12 * k;
+      headRot = -0.08 * k;
+      extra = k > 0.2 ? 'sweat' : null;
+    }
+
+    tube(c, L, 26, { seed: sd + 10 });
+    tube(c, Rr, 26, { seed: sd + 14 });
+
+    if (extra === 'pen') {
+      const h = Rr[2];
+      line(c, [[h[0] - 4, h[1] - 10], [h[0] - 16, h[1] - 44]], { lw: 7, seed: sd + 80, amp: 0.5 });
+      line(c, [[h[0] - 4, h[1] - 10], [h[0] - 16, h[1] - 44]], { lw: 3, stroke: '#fff', seed: sd + 80, amp: 0.5 });
+    }
+    if (extra === 'v') {
+      [L[2], Rr[2]].forEach((h, i) => {
+        const sg = i === 0 ? -1 : 1;
+        line(c, [[h[0] - 5, h[1] - 12], [h[0] - 15 * 1, h[1] - 44]], { lw: 6, seed: sd + 82 + i });
+        line(c, [[h[0] + 5, h[1] - 12], [h[0] + 15, h[1] - 44]], { lw: 6, seed: sd + 84 + i });
+        if (sg) dot(c, h[0], h[1] - 6, 4);
+      });
+    }
+
+    // 몸통
+    shape(
+      c,
+      [
+        [-64, 2],
+        [-70, -40],
+        [-54, -84],
+        [-50, -134],
+        [0, -140],
+        [50, -134],
+        [54, -84],
+        [70, -40],
+        [64, 2],
+        [0, 8],
+      ],
+      { fill: '#fff', seed: sd + 20 }
+    );
+
+    // 머리 (뒤통수)
+    c.save();
+    c.translate(headDx, -222 + headDy);
+    c.rotate(headRot);
+    c.scale(1 / Math.sqrt(headSq), headSq);
+    shape(c, ell(0, 0, 112, 98, 14, 0.82), { fill: '#fff', seed: sd + 30, amp: 1.8 });
+    c.restore();
+
+    if (extra === 'sweat') {
+      shape(c, [[122, -300], [132, -276], [122, -266], [112, -276]], { fill: '#bfe6ff', lw: 3, seed: sd + 90, amp: 0.6 });
+    }
+    c.restore();
+  };
+
+  /* 휘두르는 손 잔상 */
+  Art.swipeLines = function (c, x, y, dir, u) {
+    c.save();
+    c.globalAlpha = Math.max(0, 1 - u) * 0.9;
+    for (let i = 0; i < 4; i++) {
+      const yy = y - 30 + i * 22;
+      const x0 = x - dir * 170 + dir * u * 260;
+      line(c, [[x0, yy], [x0 + dir * (150 - i * 18), yy - 8 + i * 4]], { lw: 5, seed: 500 + i, amp: 2 });
+    }
+    c.restore();
+  };
+
+  /* ---------- 시청자 ----------
+     (x, y) = 발. type: paper | troll | phone | wolf
+     st: { mood, bob, t, atTable, signed, rot, seed, bubble } */
+  const FAN_FILL = { paper: '#ffffff', troll: '#c9adf7', phone: '#ffffff', wolf: '#b7afa6' };
+  Art.FAN_ACCENT = { paper: '#ffd84d', troll: '#8b5cf6', phone: '#38b6ff', wolf: '#8a8178' };
+
+  Art.fan = function (c, x, y, s, type, st) {
+    st = st || {};
+    const mood = st.mood || 'idle';
+    const t = st.t || 0;
+    const bob = st.bob || 0;
+    const sd = 700 + (st.seed || 0) * 13;
+    const fill = FAN_FILL[type] || '#fff';
+    c.save();
+    c.translate(x, y);
+    if (st.rot) {
+      c.translate(0, -150 * s);
+      c.rotate(st.rot);
+      c.translate(0, 150 * s);
+    }
+    c.scale(s, s);
+    const squash = 1 - bob * 0.04;
+    c.scale(1 + bob * 0.03, squash);
+    const lw = Math.max(4.5, Math.min(9, 4.5 / Math.sqrt(s)));
+
+    const howl = mood === 'howl';
+    const happy = mood === 'happy';
+    const sad = mood === 'sad';
+
+    // 꼬리 (늑대)
+    if (type === 'wolf') {
+      const wag = happy ? Math.sin(t * 22) * 16 : Math.sin(t * 5) * 5;
+      shape(
+        c,
+        [
+          [34, -52],
+          [78, -70 + wag * 0.3],
+          [112 + wag, -128],
+          [100 + wag, -150],
+          [84 + wag * 0.6, -112],
+          [60, -92],
+          [36, -84],
+        ],
+        { fill: fill, lw: lw, seed: sd + 1, amp: 2.4, poly: true }
+      );
+    }
+
+    // 다리
+    tube(c, [[-20, -30], [-22, -4]], 22, { fill: fill, lw: lw, seed: sd + 3 });
+    tube(c, [[20, -30], [22, -4]], 22, { fill: fill, lw: lw, seed: sd + 4 });
+
+    // 몸통
+    let bodyPts = [
+      [-44, -22],
+      [-48, -92],
+      [-45, -166],
+      [0, -172],
+      [45, -166],
+      [48, -92],
+      [44, -22],
+      [0, -16],
+    ];
+    if (type === 'wolf') {
+      // 털 삐죽삐죽
+      const fur = [];
+      const base = [
+        [-44, -22],
+        [-50, -60],
+        [-48, -100],
+        [-50, -135],
+        [-45, -166],
+        [45, -166],
+        [50, -135],
+        [48, -100],
+        [50, -60],
+        [44, -22],
+        [0, -16],
+      ];
+      for (let i = 0; i < base.length; i++) {
+        const p = base[i];
+        const q = base[(i + 1) % base.length];
+        fur.push(p);
+        const mx = (p[0] + q[0]) / 2;
+        const my = (p[1] + q[1]) / 2;
+        const out = mx < -20 ? -9 : mx > 20 ? 9 : 0;
+        fur.push([mx + out, my + (out === 0 ? 0 : 6)]);
+      }
+      shape(c, fur, { fill: fill, lw: lw, seed: sd + 5, amp: 1.2, poly: true });
+    } else {
+      shape(c, bodyPts, { fill: fill, lw: lw, seed: sd + 5 });
+    }
+
+    // 팔 + 소품
+    const AW = 18;
+    const armO = (seed) => ({ fill: fill, lw: lw, seed: sd + seed });
+    const headY = howl ? -236 : -232;
+    let prop = null;
+
+    if (type === 'paper') {
+      if (st.atTable && !st.signed) {
+        tube(c, [[-40, -146], [-52, -104], [-34, -66]], AW, armO(10));
+        tube(c, [[40, -146], [52, -104], [34, -66]], AW, armO(12));
+      } else {
+        const up = st.signed ? Math.sin(t * 18) * 6 : 0;
+        tube(c, [[-40, -146], [-70, -230], [-56, -306 + up]], AW, armO(10));
+        tube(c, [[40, -146], [70, -230], [56, -306 + up]], AW, armO(12));
+        prop = function () {
+          c.save();
+          c.translate(0, -352 + up);
+          c.rotate(st.signed ? Math.sin(t * 18) * 0.06 : -0.03);
+          shape(c, [[-62, -46], [60, -50], [64, 44], [-60, 48]], { fill: '#fff', lw: lw, seed: sd + 20, amp: 1.4, poly: true });
+          if (st.signed) {
+            line(c, [[-40, 6], [-22, -22], [-10, 16], [6, -18], [20, 12], [40, -8]], { lw: 5, stroke: RED, seed: sd + 22, amp: 1.5 });
+          } else {
+            line(c, [[-40, -20], [38, -24]], { lw: 3, stroke: '#9aa', seed: sd + 22 });
+            line(c, [[-40, 0], [20, -3]], { lw: 3, stroke: '#9aa', seed: sd + 23 });
+            Art.text(c, '싸인', 0, 22, 30, { color: Art.FAN_ACCENT.paper, outline: INK, outlineW: 5, bold: true, weight: 400 });
+          }
+          c.restore();
+        };
+      }
+    } else if (type === 'phone') {
+      const up = happy ? Math.sin(t * 18) * 5 : 0;
+      tube(c, [[40, -146], [84, -214], [76, -288 + up]], AW, armO(12));
+      tube(c, [[-40, -146], [-66, -104], [-60, -62]], AW, armO(10));
+      prop = function () {
+        c.save();
+        c.translate(80, -322 + up);
+        c.rotate(0.12);
+        shape(c, [[-27, -44], [27, -44], [27, 44], [-27, 44]], { fill: '#1b1b1b', lw: lw, seed: sd + 20, amp: 1 });
+        dot(c, -10, -26, 8, '#fff');
+        dot(c, -10, -26, 4, Art.FAN_ACCENT.phone);
+        dot(c, 10, -26, 5, '#fff');
+        c.restore();
+      };
+    } else if (type === 'troll') {
+      const shake = Math.sin(t * 20) * 5;
+      if (mood === 'laugh' || happy) {
+        tube(c, [[-40, -146], [-74, -120], [-66, -84]], AW, armO(10));
+        tube(c, [[40, -146], [74, -120], [66, -84]], AW, armO(12));
+      } else {
+        tube(c, [[-40, -146], [-84, -206], [-74 + shake, -272]], AW, armO(10));
+        tube(c, [[40, -146], [70, -112], [52, -84]], AW, armO(12));
+        prop = function () {
+          shape(c, ell(-74 + shake, -284, 17, 16, 8), { fill: fill, lw: lw, seed: sd + 20, amp: 1 });
+        };
+      }
+    } else if (type === 'wolf') {
+      if (howl) {
+        tube(c, [[-40, -146], [-88, -200], [-96 + Math.sin(t * 16) * 8, -270]], AW, armO(10));
+        tube(c, [[40, -146], [88, -200], [96 + Math.sin(t * 16 + 2) * 8, -270]], AW, armO(12));
+      } else {
+        tube(c, [[-40, -146], [-64, -106], [-58, -66]], AW, armO(10));
+        tube(c, [[40, -146], [64, -106], [58, -66]], AW, armO(12));
+      }
+    }
+
+    // 머리
+    c.save();
+    c.translate(0, headY);
+    if (howl) c.rotate(-0.3);
+    if (sad) c.rotate(0.08);
+    if (type === 'troll') {
+      // 뿔
+      shape(c, [[-52, -44], [-64, -86], [-28, -58]], { fill: '#3a2a55', lw: lw, seed: sd + 30, amp: 1, poly: true });
+      shape(c, [[52, -44], [64, -86], [28, -58]], { fill: '#3a2a55', lw: lw, seed: sd + 31, amp: 1, poly: true });
+    }
+    if (type === 'wolf') {
+      shape(c, [[-64, -30], [-66, -96], [-22, -58]], { fill: fill, lw: lw, seed: sd + 30, amp: 1, poly: true });
+      shape(c, [[64, -30], [66, -96], [22, -58]], { fill: fill, lw: lw, seed: sd + 31, amp: 1, poly: true });
+      shape(c, [[-54, -46], [-58, -78], [-36, -58]], { fill: '#f7b6c2', stroke: null, seed: sd + 32, amp: 0.5, poly: true });
+      shape(c, [[54, -46], [58, -78], [36, -58]], { fill: '#f7b6c2', stroke: null, seed: sd + 33, amp: 0.5, poly: true });
+    }
+    if (type === 'wolf') {
+      const hp = ell(0, 0, 74, 64, 18, 0.85).map((p, i) => (i % 2 ? [p[0] * 1.09, p[1] * 1.09] : p));
+      shape(c, hp, { fill: fill, lw: lw, seed: sd + 35, amp: 1.2, poly: true });
+    } else {
+      shape(c, ell(0, 0, 74, 64, 12, 0.82), { fill: fill, lw: lw, seed: sd + 35 });
+    }
+    drawFace(c, type, mood, t, sd, lw);
+    c.restore();
+
+    if (prop) prop();
+    c.restore();
+  };
+
+  function drawFace(c, type, mood, t, sd, lw) {
+    const happy = mood === 'happy';
+    const sad = mood === 'sad';
+    const shock = mood === 'shock';
+    const el = Math.min(lw, 6);
+    if (type === 'wolf') {
+      // 주둥이
+      const howl = mood === 'howl';
+      if (howl) {
+        line(c, [[-34, -8], [-18, -18]], { lw: el, seed: sd + 40 });
+        line(c, [[34, -8], [18, -18]], { lw: el, seed: sd + 41 });
+      } else if (happy) {
+        line(c, [[-36, -12], [-26, -22], [-16, -12]], { lw: el, seed: sd + 40 });
+        line(c, [[16, -12], [26, -22], [36, -12]], { lw: el, seed: sd + 41 });
+      } else if (sad) {
+        line(c, [[-36, -18], [-18, -10]], { lw: el, seed: sd + 40 });
+        line(c, [[36, -18], [18, -10]], { lw: el, seed: sd + 41 });
+      } else {
+        shape(c, ell(-26, -14, 10, 12, 8), { fill: '#ffd400', lw: 3, seed: sd + 40, amp: 0.5 });
+        shape(c, ell(26, -14, 10, 12, 8), { fill: '#ffd400', lw: 3, seed: sd + 41, amp: 0.5 });
+        dot(c, -26, -14, 4);
+        dot(c, 26, -14, 4);
+      }
+      shape(c, ell(0, 22, 34, 26, 10), { fill: '#efe9e2', lw: el * 0.8, seed: sd + 43, amp: 1 });
+      shape(c, ell(0, 6, 12, 8, 8), { fill: INK, stroke: null, seed: sd + 44, amp: 0.5 });
+      if (howl) {
+        shape(c, ell(0, 30, 13, 15, 8), { fill: '#7a1f2b', lw: 3, seed: sd + 45, amp: 0.6 });
+      } else if (sad) {
+        line(c, [[-12, 34], [0, 28], [12, 34]], { lw: 4, seed: sd + 45 });
+      } else {
+        line(c, [[-16, 26], [0, 34], [16, 26]], { lw: 4, seed: sd + 45 });
+        shape(c, [[-12, 29], [-8, 40], [-4, 32]], { fill: '#fff', lw: 2.5, seed: sd + 46, amp: 0.3, poly: true });
+        shape(c, [[12, 29], [8, 40], [4, 32]], { fill: '#fff', lw: 2.5, seed: sd + 47, amp: 0.3, poly: true });
+      }
+      if (sad) {
+        shape(c, [[-30, 0], [-24, 16], [-30, 22], [-36, 16]], { fill: '#bfe6ff', lw: 2.5, seed: sd + 48, amp: 0.4 });
+      }
+      return;
+    }
+    if (type === 'troll') {
+      const laugh = mood === 'laugh' || happy;
+      if (shock) {
+        line(c, [[-36, -16], [-16, -2]], { lw: el, seed: sd + 40 });
+        line(c, [[-16, -16], [-36, -2]], { lw: el, seed: sd + 41 });
+        line(c, [[36, -16], [16, -2]], { lw: el, seed: sd + 42 });
+        line(c, [[16, -16], [36, -2]], { lw: el, seed: sd + 43 });
+        shape(c, ell(0, 28, 14, 16, 8), { fill: '#3a2a55', lw: 3, seed: sd + 44, amp: 0.6 });
+        return;
+      }
+      // 눈썹
+      line(c, [[-44, -30], [-12, -14]], { lw: el + 1, seed: sd + 40 });
+      line(c, [[44, -30], [12, -14]], { lw: el + 1, seed: sd + 41 });
+      if (laugh) {
+        line(c, [[-38, -6], [-24, 0], [-38, 6]], { lw: el, seed: sd + 42 });
+        line(c, [[38, -6], [24, 0], [38, 6]], { lw: el, seed: sd + 43 });
+      } else {
+        dot(c, -26, -2, 6, RED);
+        dot(c, 26, -2, 6, RED);
+      }
+      // 이빨 드러낸 입
+      const mw = laugh ? 40 : 34;
+      const mh = laugh ? 24 : 12;
+      const my = 30 + (laugh ? Math.abs(Math.sin(t * 20)) * 5 : 0);
+      shape(c, [[-mw, my - mh / 2], [mw, my - mh / 2], [mw - 6, my + mh / 2], [-mw + 6, my + mh / 2]], { fill: '#fff', lw: 3.5, seed: sd + 44, amp: 0.8, poly: true });
+      const teeth = [];
+      for (let i = 0; i <= 6; i++) teeth.push([-mw + 6 + ((mw * 2 - 12) / 6) * i, my + (i % 2 ? mh * 0.3 : -mh * 0.3)]);
+      c.beginPath();
+      teeth.forEach((p, i) => (i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1])));
+      c.strokeStyle = INK;
+      c.lineWidth = 3;
+      c.stroke();
+      return;
+    }
+    // 평범한 시청자 (종이, 폰)
+    if (shock) {
+      shape(c, ell(-26, -6, 9, 11, 8), { fill: '#fff', lw: 3.5, seed: sd + 40, amp: 0.5 });
+      shape(c, ell(26, -6, 9, 11, 8), { fill: '#fff', lw: 3.5, seed: sd + 41, amp: 0.5 });
+      shape(c, ell(0, 28, 11, 14, 8), { fill: '#fff', lw: 3.5, seed: sd + 42, amp: 0.5 });
+      return;
+    }
+    if (happy) {
+      line(c, [[-36, -2], [-26, -12], [-16, -2]], { lw: el, seed: sd + 40 });
+      line(c, [[16, -2], [26, -12], [36, -2]], { lw: el, seed: sd + 41 });
+      shape(c, [[-18, 18], [18, 18], [10, 38], [-10, 38]], { fill: '#ff8fa3', lw: 3.5, seed: sd + 42, amp: 0.8 });
+    } else if (sad) {
+      line(c, [[-36, -10], [-18, -4]], { lw: el, seed: sd + 40 });
+      line(c, [[36, -10], [18, -4]], { lw: el, seed: sd + 41 });
+      line(c, [[-14, 32], [0, 24], [14, 32]], { lw: el, seed: sd + 42 });
+      shape(c, [[-28, 4], [-22, 20], [-28, 26], [-34, 20]], { fill: '#bfe6ff', lw: 2.5, seed: sd + 43, amp: 0.4 });
+    } else {
+      dot(c, -26, -6, 6.5);
+      dot(c, 26, -6, 6.5);
+      if (type === 'phone') {
+        shape(c, ell(0, 24, 10, 9, 8), { fill: '#ff8fa3', lw: 3.5, seed: sd + 42, amp: 0.5 });
+      } else {
+        line(c, [[-14, 20], [0, 30], [14, 20]], { lw: el, seed: sd + 42 });
+      }
+    }
+    // 볼터치
+    c.globalAlpha *= 0.55;
+    dot(c, -46, 14, 10, '#ffb3c1');
+    dot(c, 46, 14, 10, '#ffb3c1');
+    c.globalAlpha /= 0.55;
+  }
+
+  /* ---------- 무대 ---------- */
+
+  /* 책상 치수 */
+  Art.tableGeom = function (W, H) {
+    const cx = W / 2;
+    const hw1 = Math.min(W / 2 - 16, 400);
+    return { cx: cx, y0: H - 600, y1: H - 468, hw0: hw1 - 72, hw1: hw1 };
+  };
+
+  Art.backdrop = function (c, W, H, t, o) {
+    o = o || {};
+    const cx = W / 2;
+    c.fillStyle = '#fffdf6';
+    c.fillRect(0, 0, W, H);
+    const hz = H - 1085;
+    const g = Art.tableGeom(W, H);
+
+    // 뒷벽 현수막
+    const by = Math.max(132, hz - 120);
+    line(c, [[-10, by - 34], [cx - 250, by - 10]], { lw: 3, seed: 21 });
+    line(c, [[W + 10, by - 34], [cx + 250, by - 10]], { lw: 3, seed: 22 });
+    shape(c, [[cx - 250, by - 36], [cx + 250, by - 40], [cx + 254, by + 44], [cx - 252, by + 48]], { fill: '#fff', lw: 5, seed: 23, amp: 2, poly: true });
+    Art.text(c, o.banner || '김재원 팬미팅 (연습)', cx, by + 6, 44, { bold: true, weight: 400 });
+    // 깃발
+    const n = Math.ceil(W / 90);
+    for (let i = 0; i < n; i++) {
+      const fx = (i + 0.5) * (W / n);
+      const fy = by + 74 + Math.sin(i * 1.7) * 6;
+      const col = ['#ffd84d', '#ff8fa3', '#8ed1fc', '#b9f18d'][i % 4];
+      shape(c, [[fx - 22, fy], [fx + 22, fy], [fx, fy + 38]], { fill: col, lw: 3.5, seed: 30 + i, amp: 1.2, poly: true });
+    }
+    line(c, [[-10, by + 70], [W * 0.5, by + 78], [W + 10, by + 70]], { lw: 3, seed: 29 });
+
+    // 바닥 (줄 서는 길)
+    c.fillStyle = '#fff1ef';
+    c.beginPath();
+    c.moveTo(cx - 46, hz + 60);
+    c.lineTo(cx + 46, hz + 60);
+    c.lineTo(cx + g.hw0 + 30, g.y0 + 6);
+    c.lineTo(cx - g.hw0 - 30, g.y0 + 6);
+    c.closePath();
+    c.fill();
+    line(c, [[cx - 46, hz + 60], [cx - g.hw0 - 30, g.y0 + 6]], { lw: 4, seed: 41, amp: 2 });
+    line(c, [[cx + 46, hz + 60], [cx + g.hw0 + 30, g.y0 + 6]], { lw: 4, seed: 42, amp: 2 });
+    line(c, [[-10, hz + 60], [cx - 46, hz + 60]], { lw: 3, seed: 43, amp: 1.5 });
+    line(c, [[cx + 46, hz + 60], [W + 10, hz + 60]], { lw: 3, seed: 44, amp: 1.5 });
+  };
+
+  Art.table = function (c, W, H) {
+    const g = Art.tableGeom(W, H);
+    const cx = g.cx;
+    // 다리
+    line(c, [[cx - g.hw1 + 14, g.y1 + 20], [cx - g.hw1 + 6, g.y1 + 170]], { lw: 6, seed: 51 });
+    line(c, [[cx + g.hw1 - 14, g.y1 + 20], [cx + g.hw1 - 6, g.y1 + 170]], { lw: 6, seed: 52 });
+    // 앞판
+    shape(c, [[cx - g.hw1, g.y1], [cx + g.hw1, g.y1], [cx + g.hw1 - 4, g.y1 + 34], [cx - g.hw1 + 4, g.y1 + 34]], { fill: '#f3efe6', lw: 5, seed: 53, amp: 1.5, poly: true });
+    // 윗판
+    shape(c, [[cx - g.hw0, g.y0], [cx + g.hw0, g.y0], [cx + g.hw1, g.y1], [cx - g.hw1, g.y1]], { fill: '#fff', lw: 5, seed: 54, amp: 1.5, poly: true });
+  };
+
+  /* 책상 위 종이. sign: 0..1 (싸인 진행), bad: 삐뚤빼뚤 */
+  Art.tablePaper = function (c, x, y, k, sign, bad) {
+    c.save();
+    c.translate(x, y + (1 - k) * -60);
+    c.globalAlpha *= Math.min(1, k * 1.5);
+    shape(c, [[-56, -36], [52, -38], [66, 36], [-70, 38]], { fill: '#fff', lw: 4.5, seed: 61, amp: 1.2, poly: true });
+    line(c, [[-40, -20], [36, -22]], { lw: 2.5, stroke: '#9aa', seed: 62 });
+    if (sign > 0) {
+      const full = bad
+        ? [[-44, 6], [-30, 20], [-12, -4], [0, 24], [10, 2], [30, 22], [46, 8]]
+        : [[-44, 14], [-30, -10], [-22, 18], [-6, -12], [4, 16], [18, -8], [30, 12], [48, -2]];
+      const n = Math.max(2, Math.ceil(full.length * Math.min(1, sign)));
+      line(c, full.slice(0, n), { lw: 5, stroke: bad ? '#777' : RED, seed: 63, amp: bad ? 3 : 1 });
+    }
+    c.restore();
+  };
+
+  /* 하트 */
+  Art.heart = function (c, x, y, r, col) {
+    c.save();
+    c.translate(x, y);
+    c.beginPath();
+    c.moveTo(0, r * 0.9);
+    c.bezierCurveTo(-r * 1.5, -r * 0.2, -r * 0.7, -r * 1.2, 0, -r * 0.4);
+    c.bezierCurveTo(r * 0.7, -r * 1.2, r * 1.5, -r * 0.2, 0, r * 0.9);
+    c.fillStyle = col || RED;
+    c.fill();
+    c.strokeStyle = INK;
+    c.lineWidth = 3;
+    c.stroke();
+    c.restore();
+  };
+
+  /* 밴 도장 */
+  Art.stamp = function (c, x, y, str, k, rot) {
+    c.save();
+    c.translate(x, y);
+    c.rotate(rot || -0.2);
+    const sc = k < 0.25 ? 2.2 - (k / 0.25) * 1.2 : 1;
+    c.scale(sc, sc);
+    c.globalAlpha *= k < 0.75 ? 1 : Math.max(0, 1 - (k - 0.75) / 0.25);
+    c.font = '400 92px ' + Art.FONT_BOLD;
+    const w = c.measureText(str).width + 56;
+    shape(c, [[-w / 2, -64], [w / 2, -64], [w / 2, 64], [-w / 2, 64]], { fill: 'rgba(255,255,255,0.85)', stroke: RED, lw: 10, seed: 71, amp: 2, poly: true });
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    c.fillStyle = RED;
+    c.fillText(str, 0, 6);
+    c.restore();
+  };
+
+  /* 폴라로이드 (같이 찍은 사진) */
+  Art.polaroid = function (c, x, y, k, good, t, rot) {
+    c.save();
+    c.translate(x, y);
+    c.rotate(rot || -0.12);
+    const sc = k < 0.15 ? k / 0.15 : 1;
+    c.scale(sc, sc);
+    c.globalAlpha *= k < 0.8 ? 1 : Math.max(0, 1 - (k - 0.8) / 0.2);
+    shape(c, [[-84, -100], [84, -100], [84, 110], [-84, 110]], { fill: '#fff', lw: 4.5, seed: 81, amp: 1.2, poly: true });
+    c.save();
+    c.beginPath();
+    c.rect(-70, -86, 140, 140);
+    c.clip();
+    c.fillStyle = good ? '#dff3ff' : '#ddd';
+    c.fillRect(-70, -86, 140, 140);
+    if (good) {
+      Art.jaewon(c, -22, 150, 0.56, 'vsign', t, { long: true });
+      Art.fan(c, 44, 96, 0.46, 'paper', { mood: 'happy', t: t, seed: 4, atTable: true });
+    } else {
+      for (let i = 0; i < 6; i++) {
+        line(c, [[-70, -70 + i * 26], [-20, -50 + i * 22], [70, -76 + i * 28]], { lw: 12, stroke: i % 2 ? '#bbb' : '#eee', seed: 85 + i, amp: 8 });
+      }
+    }
+    c.restore();
+    c.strokeStyle = INK;
+    c.lineWidth = 3;
+    c.strokeRect(-70, -86, 140, 140);
+    Art.text(c, good ? '찰칵!' : '흔들림', 0, 82, 30, {});
+    c.restore();
+  };
+
+  /* 타이밍 고리 (튜토리얼) */
+  Art.ring = function (c, x, y, r, k, col) {
+    c.save();
+    c.lineWidth = 6;
+    c.strokeStyle = INK;
+    c.beginPath();
+    c.arc(x, y, r, 0, Math.PI * 2);
+    c.stroke();
+    if (k > 0) {
+      c.globalAlpha *= Math.min(1, 1.4 - k * 0.4);
+      c.strokeStyle = col || RED;
+      c.lineWidth = 7;
+      c.beginPath();
+      c.arc(x, y, r * (1 + k * 1.6), 0, Math.PI * 2);
+      c.stroke();
+    }
+    c.restore();
+  };
+})();

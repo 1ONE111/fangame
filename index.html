@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>김재원 팬미팅 연습게임</title>
+  <meta name="description" content="싸인, 밴, 찰칵찰칵, 아우우우. 박자에 맞춰 팬미팅을 연습하는 리듬게임.">
+  <meta name="theme-color" content="#fffdf6">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="stage">
+    <canvas id="cv"></canvas>
+
+    <div id="ui">
+      <!-- 타이틀 -->
+      <section id="scr-title" class="screen">
+        <div class="title-box">
+          <button id="btn-start" class="btn big" type="button">시작하기</button>
+          <div class="days" id="days">
+            <button class="btn day" type="button" data-day="1">1일차</button>
+            <button class="btn day" type="button" data-day="2">2일차</button>
+            <button class="btn day" type="button" data-day="3">3일차</button>
+          </div>
+          <button id="btn-settings" class="btn small" type="button">설정</button>
+        </div>
+      </section>
+
+      <!-- 스토리 -->
+      <section id="scr-story" class="screen">
+        <button id="btn-skip-story" class="btn small corner" type="button">건너뛰기</button>
+        <div class="dialog" id="dialog">
+          <div class="who" id="dlg-who"></div>
+          <div class="txt" id="dlg-text"></div>
+          <div class="next" id="dlg-next">▼</div>
+        </div>
+      </section>
+
+      <!-- 게임 -->
+      <section id="scr-play" class="screen">
+        <button id="btn-pause" class="btn icon corner" type="button" tabindex="-1" aria-label="일시정지">Ⅱ</button>
+        <div id="tut" class="card tut">
+          <div class="tut-title" id="tut-title"></div>
+          <div class="tut-how" id="tut-how"></div>
+          <div class="tut-pips" id="tut-pips"></div>
+        </div>
+        <button id="btn-skip-tut" class="btn small" type="button" tabindex="-1">연습 건너뛰기</button>
+      </section>
+
+      <!-- 결과 -->
+      <section id="scr-result" class="screen">
+        <div class="card result">
+          <div class="res-head"><span id="res-day"></span><span id="res-score"></span></div>
+          <div class="res-line" id="res-line"></div>
+          <div class="res-stats">
+            <div><b id="res-perfect">0</b><span>완벽</span></div>
+            <div><b id="res-good">0</b><span>굿</span></div>
+            <div><b id="res-miss">0</b><span>삑</span></div>
+            <div><b id="res-combo">0</b><span>최대 콤보</span></div>
+          </div>
+          <div class="res-buttons">
+            <button id="btn-next" class="btn big" type="button">다음 날로</button>
+            <div class="row">
+              <button id="btn-retry" class="btn" type="button">다시 하기</button>
+              <button id="btn-home" class="btn" type="button">처음 화면</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 일시정지 -->
+      <div id="modal-pause" class="modal">
+        <div class="card">
+          <h2>잠깐 쉬는 중</h2>
+          <button id="btn-resume" class="btn big" type="button">계속하기</button>
+          <button id="btn-restart" class="btn" type="button">처음부터 다시</button>
+          <button id="btn-quit" class="btn" type="button">나가기</button>
+        </div>
+      </div>
+
+      <!-- 설정 -->
+      <div id="modal-settings" class="modal">
+        <div class="card">
+          <h2>설정</h2>
+          <label class="field">
+            <span>소리 크기 <b id="val-volume"></b></span>
+            <input id="rng-volume" type="range" min="0" max="100" step="5">
+          </label>
+          <label class="field">
+            <span>판정 보정 <b id="val-offset"></b></span>
+            <input id="rng-offset" type="range" min="-150" max="300" step="10">
+            <small>블루투스 이어폰처럼 소리가 늦게 들리면 +쪽으로. 박자에 맞게 눌렀는데 자꾸 삑이 나면 조절.</small>
+          </label>
+          <button id="btn-reset" class="btn small danger" type="button">진행 기록 지우기</button>
+          <button id="btn-close-settings" class="btn big" type="button">닫기</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/art.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>
