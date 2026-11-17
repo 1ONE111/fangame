@@ -176,7 +176,8 @@
   function startDay(day) {
     unlockAudio().then(() => {
       A.click();
-      playStory(String(day), D.days[day].label, () => startTutorial(day));
+      // 이미 연습을 끝낸 날은 다시 할 때 연습을 건너뛴다
+      playStory(String(day), D.days[day].label, () => (save.tutDone[day] ? startMain(day) : startTutorial(day)));
     });
   }
 
@@ -387,10 +388,10 @@
       if (tu.i >= tu.steps.length) {
         tu.done = true;
         tu.doneBeat = Math.max(lastEnd, b + 1);
-        addFx(g, { type: 'cap', str: '연습 끝!', x: W / 2, y: H * 0.42, size: 96, dur: 3, b0: b + 0.3 });
-        addFx(g, { type: 'text', str: '이제 진짜 시작', x: W / 2, y: H * 0.42 + 110, size: 60, dur: 2.7, b0: b + 0.6, color: Art.RED });
+        addFx(g, { type: 'cap', str: '연습 끝!', x: W / 2, y: H * 0.42, size: 96, dur: 2.2, b0: b + 0.3 });
+        addFx(g, { type: 'cap', str: goalText(g.day), x: W / 2, y: H * 0.42 + 112, size: 46, dur: 2, b0: b + 0.5 });
       } else {
-        tu.nextCue = Math.ceil((Math.max(lastEnd, b + 1) + 2) / 2) * 2;
+        tu.nextCue = Math.ceil((Math.max(lastEnd, b + 1) + 1) / 2) * 2;
         addFx(g, { type: 'cap', str: '좋아! 다음', x: W / 2, y: H * 0.42, size: 80, dur: 2, b0: b + 0.3 });
       }
     }
@@ -407,6 +408,11 @@
     let pips = '';
     for (let i = 0; i < D.tutorialNeed; i++) pips += '<i class="' + (tu.done || i < tu.ok ? 'on' : '') + '"></i>';
     $('#tut-pips').innerHTML = pips;
+    $('#tut-goal').textContent = goalText(g.day);
+  }
+  /* 다음 날 여는 조건 */
+  function goalText(day) {
+    return '본게임 ' + D.passScore + '점 이상이면 ' + (day < 3 ? day + 1 + '일차 열림' : '엔딩');
   }
 
   /* --- 소리 예약 (조금씩 앞당겨서) --- */
@@ -799,7 +805,7 @@
     if (g.hold && b >= g.hold.note.holdEnd) completeHold(g, b);
 
     if (g.finished) return;
-    if (g.mode === 'tutorial' && g.tut.done && b >= g.tut.doneBeat + 2.6) {
+    if (g.mode === 'tutorial' && g.tut.done && b >= g.tut.doneBeat + 1.6) {
       g.finished = true;
       save.tutDone[g.day] = true;
       persist();
@@ -834,7 +840,7 @@
     setScreen('result');
     $('#res-day').textContent = D.days[day].label + ' 결과';
     $('#res-score').textContent = score + '점';
-    $('#res-line').textContent = grade.line;
+    $('#res-line').textContent = grade.line + (pass ? '' : ' (' + D.passScore + '점부터 통과)');
     $('#res-perfect').textContent = st.perfect;
     $('#res-good').textContent = st.good;
     $('#res-miss').textContent = st.miss;

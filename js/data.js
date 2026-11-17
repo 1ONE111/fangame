@@ -86,28 +86,28 @@
     3: { label: '3일차', learn: ['wolf'], types: ['paper', 'troll', 'phone', 'wolf'] },
   };
 
-  D.tutorialNeed = 3;
+  D.tutorialNeed = 2;
 
   /* 스토리. who가 비어 있으면 나레이션. */
   D.story = {
     1: [
-      { who: '', text: '유튜버 김재원.\n생애 첫 팬미팅이 3일 앞으로 다가왔다.', pose: 'down' },
+      { who: '', text: '유튜버 김재원.\n전역하고 첫 팬미팅이 3일 앞으로 다가왔다.', pose: 'down' },
       { who: '재원', text: '야호', pose: 'yaho1' },
-      { who: '', text: '그런데 문제가 하나 있다.\n싸인회를 해본 적이 없다.', pose: 'think' },
-      { who: '재원', text: '싸인... 어케하누?', pose: 'think' },
-      { who: '', text: '그래서 3일 동안 연습하기로 했다.\n시청자들이 연습 상대가 되어주기로 했다.', pose: 'down' },
+      { who: '', text: '그런데 문제가 하나 있다.\n군대에 있는 동안 몸이 완전히 굳어버렸다.', pose: 'think' },
+      { who: '재원', text: '이 몸으로... 잘할 수 있을까?', pose: 'think' },
+      { who: '', text: '그래서 3일 동안 몸을 풀기로 했다.\n시청자들이 연습 상대가 되어주기로 했다.', pose: 'down' },
       { who: '', text: '종이를 든 시청자에겐 싸인을.\n악질 시청자에겐 밴을.', pose: 'shrug' },
       { who: '재원', text: 'ㄱㄱ', pose: 'yaho1' },
     ],
     2: [
-      { who: '', text: '팬미팅 D-2.\n싸인은 이제 좀 한다.', pose: 'down' },
+      { who: '', text: '팬미팅 D-2.\n굳었던 손이 좀 풀렸다. 싸인은 이제 좀 한다.', pose: 'down' },
       { who: '재원', text: '야호오오', pose: 'yaho2' },
       { who: '', text: '오늘은 폰을 든 시청자도 온다.\n같이 사진을 찍어달라고 한다.', pose: 'think' },
       { who: '', text: '사진은 한 장으로는 불안하다.\n그래서 두 장 찍는다.', pose: 'shrug' },
       { who: '재원', text: '찰칵찰칵.', pose: 'yaho1' },
     ],
     3: [
-      { who: '', text: '팬미팅 D-1.\n마지막 연습이다.', pose: 'down' },
+      { who: '', text: '팬미팅 D-1.\n몸이 거의 다 풀렸다. 마지막 연습이다.', pose: 'down' },
       { who: '', text: '그런데 제보가 하나 들어왔다.\n시청자 중에 늑대인간이 섞여 있다고 한다.', pose: 'think' },
       { who: '재원', text: '?', pose: 'shrug' },
       { who: '', text: '늑대인간 시청자 앞에서는\n같이 울어줘야 한다. 그것이 예의다.', pose: 'down' },
@@ -116,13 +116,13 @@
     ],
     ending: [
       { who: '', text: '그렇게 3일간의 연습이 끝났다.', pose: 'down' },
-      { who: '', text: '싸인도, 밴도, 사진도, 하울링도\n이제 몸이 기억한다.', pose: 'shrug' },
+      { who: '', text: '굳었던 몸이 다 풀렸다.\n싸인도, 밴도, 사진도, 하울링도 문제없다.', pose: 'shrug' },
       { who: '재원', text: '야호오오오오오!!', pose: 'yaho3' },
       { who: '시청자들', text: '어케했누? 어케했누? 어케했누?', pose: 'yaho3' },
-      { who: '', text: '내일은 진짜 팬미팅이다.', pose: 'yaho1' },
+      { who: '', text: '내일은 진짜 전역 후 첫 팬미팅이다.', pose: 'yaho1' },
       { who: '', text: '그날 밤.', scene: 'sick' },
       { who: '재원', text: '끄응... 몸이 왜 이러누', scene: 'sick' },
-      { who: '', text: '3일 내내 야호하고 밴하고 하울링까지 했더니\n몸살이 나버렸다.', scene: 'sick' },
+      { who: '', text: '전역하고 안 쓰던 몸을 3일 내내 썼더니\n몸살이 나버렸다.', scene: 'sick' },
       { who: '', text: '다음 날 아침.', scene: 'cafe', step: 'write' },
       { who: '재원', text: '(타닥타닥)', scene: 'cafe', step: 'write' },
       { who: '', text: '네이퍼 팬카페에 공지가 올라왔다.', scene: 'cafe', step: 'post' },

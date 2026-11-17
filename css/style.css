@@ -317,6 +317,13 @@ body {
 .tut-pips i.on {
   background: var(--red);
 }
+.tut-goal {
+  margin-top: 0.4em;
+  font-family: var(--hand);
+  font-weight: 700;
+  font-size: 1.6em;
+  color: var(--red);
+}
 #btn-skip-tut {
   position: absolute;
   top: 1.1em;
