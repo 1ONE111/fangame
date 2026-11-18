@@ -647,12 +647,7 @@
     const good = res !== 'miss';
     const perfect = res === 'perfect';
     const headY = H - HEAD_Y;
-    const say = (str, dur, o) => addFx(g, Object.assign({ type: 'bubble', str: str, x: cx + 190, y: headY + 30, size: 40, dur: dur || 1.1, b0: b, dir: -1 }, o));
-    // 시청자 한마디 (D.react)
-    const line1 = (type, dur, o) => {
-      const r = D.react[type];
-      say(r.text, dur, Object.assign({ dyn: r.dyn, size: r.dyn ? 30 : 40 }, o));
-    };
+    const say = (str, dur) => addFx(g, { type: 'bubble', str: str, x: cx + 190, y: headY + 30, size: 40, dur: dur || 1.1, b0: b, dir: -1 });
     const note = (str, col) => addFx(g, { type: 'text', str: str, x: cx, y: H - 1000, size: 52, dur: 1.3, b0: b, color: col || '#444', rise: 20 });
     const hearts = (k) => {
       for (let i = 0; i < k; i++) {
@@ -667,7 +662,7 @@
         n.signBeat = b;
         n.leaveDelay = 0.3;
         hearts(perfect ? 4 : 2);
-        line1('paper', 1.3);
+        if (Math.random() < 0.5) say(pick(D.fanThanks));
         break;
       case 'banned':
         setAnim(g, 'ban', b, 0.8, n.dir);
@@ -675,19 +670,16 @@
         g.shakeBeat = b;
         addFx(g, { type: 'swipe', dir: n.dir, dur: 0.5, b0: b });
         addFx(g, { type: 'stamp', str: perfect ? '영구밴' : '밴!', x: cx - n.dir * 40, y: H - 800, dur: 1.2, b0: b, rot: -0.18 * n.dir });
-        line1('troll', 1.1, { x: cx + n.dir * 210, dir: -n.dir });
         break;
       case 'photo':
         n.leaveDelay = 0.12;
         hearts(perfect ? 3 : 1);
         addFx(g, { type: 'pola', good: true, x: cx - (W > 1200 ? 330 : 228), y: H - 730, dur: 2.2, b0: b, rot: -0.14 });
-        line1('phone', 1.3);
         break;
       case 'howl':
         n.leaveDelay = 0.15;
         hearts(perfect ? 3 : 1);
         addFx(g, { type: 'text', str: '아우우우~!', x: cx, y: H - 985, size: 84, dur: 1.1, b0: b, color: Art.INK, rise: 30 });
-        line1('wolf', 1.4);
         break;
       case 'late':
       case 'early':
@@ -1541,7 +1533,7 @@
           break;
         case 'bubble':
           c.globalAlpha = fade;
-          Art.bubble(c, f.str, f.x, f.y, f.size, { scale: pop, dir: f.dir, dyn: f.dyn });
+          Art.bubble(c, f.str, f.x, f.y, f.size, { scale: pop, dir: f.dir });
           break;
         case 'heart':
           c.globalAlpha = fade;

@@ -241,9 +241,7 @@
     c.translate(x, y);
     if (o.scale != null) c.scale(o.scale, o.scale);
     c.font = '700 ' + size + 'px ' + Art.FONT_HAND;
-    const tw = c.measureText(str).width;
-    const dynW = o.dyn ? size * 0.75 : 0;
-    const w = Math.max(tw + dynW + size * 0.9, size * 2);
+    const w = Math.max(c.measureText(str).width + size * 0.9, size * 2);
     const h = size * 1.5;
     const pts = ell(0, 0, w / 2, h / 2, 12, 0.72);
     shape(c, pts, { fill: '#fff', lw: 4, seed: o.seed || 5, amp: 1.6 });
@@ -262,19 +260,7 @@
     c.textAlign = 'center';
     c.textBaseline = 'middle';
     c.fillStyle = o.color || INK;
-    c.fillText(str, -dynW / 2, size * 0.04);
-    if (o.dyn) Art.dyn(c, o.dyn, tw / 2 - dynW / 2 + size * 0.14, size * 0.1, size);
-    c.restore();
-  };
-
-  /* 악보 셈여림 표시 (p = 작게). (x, y) = 글자 왼쪽 가운데 */
-  Art.dyn = function (c, mark, x, y, size) {
-    c.save();
-    c.font = 'italic 700 ' + size * 1.05 + 'px Georgia, "Times New Roman", serif';
-    c.textAlign = 'left';
-    c.textBaseline = 'middle';
-    c.fillStyle = '#555';
-    c.fillText(mark, x, y);
+    c.fillText(str, 0, size * 0.04);
     c.restore();
   };
 
@@ -1712,7 +1698,6 @@
         Art.avatar(c, x + 24, y, 24, cm.who);
         cafeText(c, cm.name, x + 58, y - 13, 20, { bold: true });
         cafeText(c, cm.text, x + 58, y + 14, 24);
-        if (cm.dyn) Art.dyn(c, cm.dyn, x + 64 + cafeWidth(c, cm.text, 24, false), y + 16, 24);
         c.restore();
       });
       if (o.step === 'stamp') {
