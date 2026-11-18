@@ -30,7 +30,7 @@
 
   /* ---------- 저장 ---------- */
   const SAVE_KEY = 'kjw-fanmeeting-practice-v1';
-  const save = { unlocked: 1, best: {}, offsetMs: 0, volume: 0.8, tutDone: {}, cleared: false, calibrated: false };
+  const save = { unlocked: 1, best: {}, offsetMs: 0, volume: 0.8, tutDone: {}, cleared: false, calibV: 0 };
   try {
     const raw = JSON.parse(localStorage.getItem(SAVE_KEY) || '{}');
     if (raw && typeof raw === 'object') Object.assign(save, raw);
@@ -192,6 +192,7 @@
   function showLine() {
     const ln = story.lines[story.i];
     story.t0 = performance.now();
+    story.lineT0 = story.t0;
     story.shown = 0;
     $('#dlg-who').textContent = ln.who || '';
     $('#dlg-text').textContent = '';
@@ -840,23 +841,27 @@
      '딱' 소리에 맞춰 누르게 해서 그 차이를 재고 save.offsetMs에 넣는다.
      화면을 보면 화면에 맞춰 누르게 되니까, 이 동안에는 박자를 화면에 보여주지 않는다. */
   const CAL = { interval: 0.8, ticks: 11, need: 5, pips: 8 };
+  const CAL_VERSION = 2; // 이 숫자를 올리면 모든 기기에서 처음 시작할 때 다시 잰다
   let calib = null;
 
+  /* 날짜 시작. 이 기기에서 아직 박자를 안 쟀으면 그것부터 (버튼 없이 바로 시작) */
   function requestDay(day) {
-    if (save.calibrated) return startDay(day);
+    if (save.calibV === CAL_VERSION) return startDay(day);
     unlockAudio();
-    openCalib(() => startDay(day));
+    openCalib(() => startDay(day), true);
   }
-  function openCalib(after) {
-    calib = { after: after, running: false, done: false, taps: [], timer: 0 };
+  function openCalib(after, auto) {
+    calib = { after: after, auto: !!auto, running: false, done: false, taps: [], timer: 0 };
     $('#calib-how').textContent =
-      (after ? '처음 한 번만 하면 됨.\n' : '') + "'딱' 소리에 맞춰서 화면을 탭하거나 스페이스!\n화면 말고 소리만 듣고 누르기.";
-    $('#calib-msg').textContent = '';
+      (auto ? '시작 전에 박자부터 맞춤.\n' : '') + "'딱' 소리에 맞춰서 화면을 탭하거나 스페이스!\n화면 말고 소리만 듣고 누르기.";
+    $('#calib-msg').textContent = auto ? '준비...' : '';
     $('#btn-calib-go').textContent = '시작';
-    $('#btn-calib-go').hidden = false;
-    $('#btn-calib-skip').textContent = after ? '건너뛰기' : '닫기';
+    $('#btn-calib-go').hidden = !!auto;
+    $('#btn-calib-skip').textContent = auto ? '그냥 시작' : '닫기';
+    $('#btn-calib-skip').hidden = !!auto;
     calibPips(0);
     openModal('modal-calib');
+    if (auto) calib.timer = setTimeout(runCalib, 1200);
   }
   function calibPips(n) {
     let s = '';
@@ -869,6 +874,9 @@
       const ctx = A.ctx();
       if (!ctx || ctx.state !== 'running') {
         $('#calib-msg').textContent = '소리가 안 나와서 못 잼. 무음 모드를 끄고 다시.';
+        $('#btn-calib-go').hidden = false;
+        $('#btn-calib-go').textContent = '다시';
+        $('#btn-calib-skip').hidden = false;
         return;
       }
       calib.running = true;
@@ -900,18 +908,24 @@
     if (ds.length < CAL.need) {
       $('#calib-msg').textContent = '누른 게 너무 적어서 못 잼. 다시!';
       $('#btn-calib-go').textContent = '다시';
+      $('#btn-calib-skip').hidden = false;
       return;
     }
     const med = ds[Math.floor(ds.length / 2)];
     const ms = clamp(Math.round(((med - A.latency()) * 1000) / 10) * 10, -150, 500);
     save.offsetMs = ms;
-    save.calibrated = true;
+    save.calibV = CAL_VERSION;
     persist();
     calib.done = true;
     $('#calib-msg').textContent =
       ms >= 60 ? '이 기기는 소리가 ' + (ms / 1000 + A.latency()).toFixed(2) + '초 늦게 나옴.\n맞춰놨음!' : ms <= -60 ? '소리가 조금 빨리 나옴. 맞춰놨음!' : '딱 맞음!';
     $('#btn-calib-go').textContent = calib.after ? '시작하기' : '확인';
     A.sign(true);
+    if (calib.auto) {
+      // 시작 흐름 중이면 결과만 잠깐 보여주고 바로 넘어간다
+      $('#btn-calib-go').hidden = true;
+      calib.timer = setTimeout(closeCalib, 1400);
+    }
   }
   function closeCalib() {
     const c0 = calib;
@@ -1120,14 +1134,17 @@
   on('#btn-calib-go', () => {
     if (!calib) return;
     if (calib.done) closeCalib();
-    else runCalib();
+    else {
+      $('#btn-calib-skip').hidden = !!calib.auto;
+      runCalib();
+    }
   });
   on('#btn-calib-skip', () => {
     if (!calib) return;
     A.click();
     // 건너뛰어도 다시 묻지 않는다 (타이틀이나 설정에서 언제든 다시 할 수 있음)
-    if (!save.calibrated) {
-      save.calibrated = true;
+    if (calib.after && save.calibV !== CAL_VERSION) {
+      save.calibV = CAL_VERSION;
       persist();
     }
     closeCalib();
@@ -1664,15 +1681,41 @@
       return;
     }
     if (story.key === 'ending' && ln.who === '시청자들') {
-      const ks = ['paper', 'troll', 'phone', 'wolf'];
-      ks.forEach((k, i) => {
-        const x = cx + (i - 1.5) * (W / 4.4);
-        const fy = Math.max(baseY - 330 * sc, 170 + 215 * sc) + (i % 2) * 40;
-        Art.fan(c, x, fy, 0.5 * sc, k, { t: t, seed: i + 1, mood: k === 'troll' ? 'idle' : 'happy', bob: Math.pow(1 - frac(t * 2 + i * 0.25), 3) });
-        Art.text(c, '어케했누?', x, fy - 215 * sc - 6, 34 * sc, { rot: (i - 1.5) * 0.06 });
-      });
+      renderChant(t, dialogTop);
+      return;
     }
     Art.jaewon(c, cx, baseY, sc, ln.pose || 'down', t, { long: true, open: talking && frac(t * 5) > 0.5, blink: frac(t * 0.27) > 0.95 });
+  }
+
+  /* 엔딩: 시청자들 '어케했누?' 합창. 한 명씩 박자에 맞춰 외치다가 다 같이 */
+  function renderChant(t, dialogTop) {
+    const beat = 0.42;
+    const el = (performance.now() - story.lineT0) / 1000;
+    const ks = ['paper', 'troll', 'phone', 'wolf'];
+    const gap = Math.min(W / 4.3, 470);
+    const fs = Math.min(0.95, gap / 300);
+    const feet = dialogTop - 36;
+    const all = el >= 0.25 + ks.length * beat;
+    const pulse = Math.pow(1 - frac(Math.max(0, el - 0.25) / beat), 3);
+    ks.forEach((k, i) => {
+      const x = W / 2 + (i - 1.5) * gap;
+      const on = el >= 0.25 + i * beat;
+      const jump = on ? (all ? pulse : Math.pow(1 - Math.min(1, (el - 0.25 - i * beat) / beat), 3)) : 0;
+      Art.fan(c, x, feet - jump * 26 * fs, fs, k, { t: t, seed: i + 1, mood: k === 'troll' ? 'laugh' : 'happy', bob: jump * 0.6 });
+      if (on) {
+        const k2 = clamp((el - 0.25 - i * beat) / 0.12, 0, 1);
+        const sz = (all ? 50 + 6 * pulse : 50) * fs;
+        Art.bubble(c, '어케했누?', x + (i < 2 ? 40 : -40) * fs, feet - 470 * fs, sz, { scale: 0.4 + 0.6 * k2, dir: i < 2 ? -1 : 1, seed: 60 + i });
+      }
+    });
+    if (all) {
+      const k3 = clamp((el - 0.25 - ks.length * beat) / 0.15, 0, 1);
+      Art.caption(c, '어케했누?', W / 2, Math.max(150, feet - 640 * fs), 132 * Math.min(1, fs + 0.1), {
+        scale: (0.5 + 0.5 * k3) * (1 + 0.08 * pulse),
+        rot: Math.floor((el - 0.25) / beat) % 2 ? 0.05 : -0.05,
+        seed: 70,
+      });
+    }
   }
 
   /* 엔딩 컷씬 장면 (몸살 난 밤, 팬카페 공지). 같은 장면이 이어지면 애니메이션도 이어진다 */

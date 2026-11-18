@@ -172,6 +172,9 @@
     });
     return pts;
   }
+  function frac01(v) {
+    return v - Math.floor(v);
+  }
   Art.shape = shape;
   Art.line = line;
   Art.tube = tube;
@@ -450,29 +453,35 @@
     }
     const sd = 100;
     const bottom = o.long ? 420 : 0;
+    // 가슴 튕기기 (ATEEZ 'BAD'의 chest pop 느낌): 박마다 가슴이 '탁' 하고 튀어나온다
+    const pop = pose === 'chestpop' ? Math.pow(1 - frac01(t * 2.4), 3) : 0;
+    const lean = pose === 'chestpop' ? (Math.floor(t * 2.4) % 2 ? 1 : -1) * 4 : 0;
     // 머리: 옆으로 넓은 덩어리. 몸통 위에 얹는다
-    const HX = 0;
-    const HY = -232;
+    const HX = lean * 1.5;
+    const HY = -232 - 14 * pop;
     const HW = 112;
     const HH = 95;
-    const body = wob(
-      [
-        [-50, bottom],
-        [-52, -80],
-        [-56, -128],
-        [-50, -160],
-        [-28, -178],
-        [0, -182],
-        [28, -178],
-        [50, -160],
-        [56, -128],
-        [52, -80],
-        [50, bottom],
-        [0, bottom + 6],
-      ],
-      sd,
-      1.6
-    );
+    let bodyPts = [
+      [-50, bottom],
+      [-52, -80],
+      [-56, -128],
+      [-50, -160],
+      [-28, -178],
+      [0, -182],
+      [28, -178],
+      [50, -160],
+      [56, -128],
+      [52, -80],
+      [50, bottom],
+      [0, bottom + 6],
+    ];
+    if (pop || lean) {
+      bodyPts = bodyPts.map((p) => {
+        const up = p[1] < -100 ? Math.min(1, (-100 - p[1]) / 60) : 0;
+        return [p[0] * (1 + 0.14 * pop * up) + lean * up, p[1] - 12 * pop * up];
+      });
+    }
+    const body = wob(bodyPts, sd, 1.6);
 
     // 다리
     if (!o.long) {
@@ -549,6 +558,19 @@
       line(c, [[-152, -234], [-164, -266]], { lw: 5, seed: sd + 71 });
       line(c, [[-144, -234], [-136, -268]], { lw: 5, seed: sd + 72 });
       arm([[50, -140], [66, -92], [62, -44]], sd + 14);
+    } else if (pose === 'chestpop') {
+      // 팔꿈치를 뒤로 빼고 주먹은 허리에. 튕길 때 팔꿈치가 더 뒤로
+      const e = 10 * pop;
+      arm([[-52, -144 - 8 * pop], [-108 - e, -116], [-70, -66]], sd + 10);
+      arm([[52, -144 - 8 * pop], [108 + e, -116], [70, -66]], sd + 14);
+      if (pop > 0.35) {
+        [-1, 1].forEach((sg) => {
+          for (let m = 0; m < 3; m++) {
+            const yy = -170 + m * 18;
+            line(c, [[sg * (96 + 12 * pop), yy], [sg * (122 + 26 * pop), yy - 8 + m * 8]], { lw: 4, seed: sd + 80 + m + sg * 4, amp: 0.4 });
+          }
+        });
+      }
     } else if (pose === 'lie') {
       tube(c, [[-50, -136], [-20, -108], [26, -114]], AW, { seed: sd + 10 });
       arm([[50, -136], [70, -95], [64, -50]], sd + 14);
@@ -565,7 +587,7 @@
   };
 
   /* ---------- 늑대인간으로 변하는 김재원 (하울링, 정면) ----------
-     (x, y) = 몸통 아래 가운데. k = 변신 정도 0..1 (귀, 털, 찢어진 셔츠가 점점 커진다) */
+     (x, y) = 몸통 아래 가운데. k = 변신 정도 0..1 (귀, 볼 털이 점점 커진다) */
   const FUR = '#a99d91';
   const FUR_D = '#6f645a';
   function furTuft(c, x0, y0, x1, y1, side, n, seed, lw) {
@@ -594,24 +616,44 @@
     }
   }
 
+  /* 무릎 꿇고 상체를 뒤로 젖힌 채 하늘 보고 하울링.
+     한 손은 들어 올려 어깨 쪽 옷깃을 움켜쥐고, 한 손은 몸 뒤로 뺀다. */
   Art.jaewonWere = function (c, x, y, s, t, k, o) {
     o = o || {};
     k = Math.max(0, Math.min(1, k));
     const sd = 400;
+    const wv = o.still ? 0 : Math.sin(t * 16) * 4 * k;
     c.save();
     c.translate(x, y);
     c.scale(s, s);
-    if (!o.still) c.translate(Math.sin(t * 47) * 1.6 * k, 0);
+    if (!o.still) c.translate(Math.sin(t * 47) * 1.4 * k, 0);
 
-    // 다리: 버티고 선 자세
-    tube(c, [[-24, -14], [-46, 36], [-40, 82]], 30, { seed: sd + 1 });
-    tube(c, [[24, -14], [46, 36], [40, 82]], 30, { seed: sd + 2 });
+    // 바닥 그림자
+    c.fillStyle = 'rgba(0, 0, 0, 0.12)';
+    c.beginPath();
+    c.ellipse(0, 72, 130, 14, 0, 0, Math.PI * 2);
+    c.fill();
+    // 다리: 무릎 꿇기. 정강이는 뒤로 접혀서 발끝만 옆으로 보인다
+    tube(c, [[-40, 62], [-74, 56], [-100, 46]], 26, { seed: sd + 3 });
+    tube(c, [[40, 62], [74, 56], [100, 46]], 26, { seed: sd + 4 });
+    tube(c, [[-22, -12], [-34, 30], [-40, 62]], 32, { seed: sd + 1 });
+    tube(c, [[22, -12], [34, 30], [40, 62]], 32, { seed: sd + 2 });
 
+    // 상체: 뒤로 젖히며 왼쪽으로 살짝 비튼다
+    c.save();
+    c.translate(0, -6);
+    c.rotate(-0.06 - 0.06 * k);
+    c.translate(0, 6);
     const body = wob(
-      [[-50, 0], [-52, -80], [-56, -128], [-50, -160], [-28, -178], [0, -182], [28, -178], [50, -160], [56, -128], [52, -80], [50, 0], [0, 6]],
+      [[-50, 0], [-52, -80], [-58, -128], [-52, -160], [-28, -178], [0, -182], [28, -178], [52, -160], [58, -128], [52, -80], [50, 0], [0, 6]],
       sd,
       1.6
     );
+    // 몸 뒤로 뺀 팔 (몸통보다 먼저 그려서 뒤에 있게)
+    const L = [[-44, -132], [-104, -94], [-100 + wv, -26]];
+    tube(c, L, 24, { seed: sd + 20 });
+    claws(c, L[2], Math.PI / 2 + 0.4, sd + 40);
+
     c.beginPath();
     trace(c, body, true);
     c.fillStyle = WHITE;
@@ -624,64 +666,11 @@
     c.fillRect(-38, -12, 28, 16);
     c.fillRect(10, -12, 28, 16);
 
-    // 셔츠가 세로로 찢어지면서 털이 보인다 (몸통 안쪽만)
+    // 머리: 크게 뒤로 젖혀서 하늘 보며 아우우
     c.save();
-    c.beginPath();
-    trace(c, body, true);
-    c.clip();
-    const hw = 6 + 34 * k;
-    const top = -184;
-    const bot = -20 - (1 - k) * 70;
-    const tear = [];
-    const nz = 8;
-    for (let i = 0; i <= nz; i++) {
-      const v = i / nz;
-      const w = hw * Math.sin(Math.PI * (0.08 + v * 0.84));
-      tear.push([-w - (i % 2 ? 9 * k : 0), top + (bot - top) * v]);
-    }
-    for (let i = nz; i >= 0; i--) {
-      const v = i / nz;
-      const w = hw * Math.sin(Math.PI * (0.08 + v * 0.84));
-      tear.push([w + (i % 2 ? 0 : 9 * k), top + (bot - top) * v]);
-    }
-    shape(c, tear, { fill: FUR, lw: 3, seed: sd + 5, amp: 1, poly: true });
-    for (let i = 0; i < 7; i++) {
-      const fx = -hw * 0.55 + (i % 4) * hw * 0.36;
-      const fy = top + 34 + Math.floor(i / 4) * 44 + (i % 2) * 12;
-      if (fy < bot - 8) line(c, [[fx, fy], [fx - 4, fy + 13]], { lw: 2.5, stroke: FUR_D, seed: sd + 10 + i, amp: 0.4 });
-    }
-    c.restore();
-
-    // 팔: 한 손은 찢은 셔츠 조각을 쥐고 위로, 한 손은 발톱 세우고 아래로
-    const AW = 24;
-    const wv = Math.sin(t * 16) * 6 * k;
-    const R = [[50, -140], [122, -152], [154, -228], [150 + wv, -306]];
-    const L = [[-50, -138], [-104, -100], [-114 - wv, -48]];
-    limb(c, body, L, AW, { seed: sd + 20 });
-    limb(c, body, R, AW, { seed: sd + 24 });
-    if (k > 0.15) {
-      const n = 1 + Math.round(k * 2);
-      furTuft(c, L[1][0] - 12, L[1][1] - 10, L[2][0] - 12, L[2][1] - 6, 1, n, sd + 30, 3);
-      furTuft(c, R[2][0] + 13, R[2][1] + 4, R[3][0] + 13, R[3][1] + 12, 1, n, sd + 32, 3);
-      furTuft(c, -52, -168, -60, -128, 1, n, sd + 34, 3);
-      furTuft(c, 60, -128, 52, -168, 1, n, sd + 36, 3);
-    }
-    claws(c, L[2], Math.PI / 2 + 0.25, sd + 40);
-    // 찢은 셔츠 조각
-    const h = R[3];
-    shape(c, [[h[0] - 30, h[1] - 26], [h[0] + 4, h[1] - 40], [h[0] + 30, h[1] - 22], [h[0] + 14, h[1] - 16], [h[0] + 20, h[1] - 4], [h[0] - 2, h[1] - 12], [h[0] - 14, h[1] + 2], [h[0] - 16, h[1] - 14]], {
-      fill: '#fff',
-      lw: 3.5,
-      seed: sd + 44,
-      amp: 0.8,
-      poly: true,
-    });
-    claws(c, h, -Math.PI / 2 + 0.3, sd + 46);
-
-    // 머리: 뒤로 젖히고 하늘 보며 아우우
-    c.save();
-    c.translate(0, -238);
-    c.rotate(-0.12);
+    c.translate(0, -172);
+    c.rotate(-0.3 - 0.08 * k);
+    c.translate(0, -66);
     c.scale(1, 0.94);
     const eh = 8 + 50 * k;
     [-1, 1].forEach((sg) => {
@@ -689,17 +678,28 @@
       if (k > 0.3) shape(c, [[sg * 86, -66], [sg * 81, -72 - eh * 0.72], [sg * 56, -82]], { fill: '#f7b6c2', stroke: null, seed: sd + 53 + sg, amp: 0.4, poly: true });
     });
     shape(c, headPts(0, 0, 112, 95), { fill: WHITE, lw: 5, seed: sd + 56, amp: 1.2 });
-    if (k > 0.2) {
+    if (k > 0.25) {
       const n = 1 + Math.round(k * 2);
       furTuft(c, -104, -20, -96, 46, -1, n, sd + 60, 3);
       furTuft(c, 106, -20, 98, 46, 1, n, sd + 62, 3);
     }
-    // 얼굴: 위를 보니까 이목구비가 위로 올라간다
+    // 위를 보니까 이목구비가 위로 올라간다. 눈은 질끈
     line(c, [[-94, -54], [-46, -52], [-22, -44], [-12, -36]], { lw: 3.6, seed: sd + 70, amp: 0.5 });
     line(c, [[94, -50], [40, -48], [24, -40], [18, -32]], { lw: 3.6, seed: sd + 71, amp: 0.5 });
     line(c, [[-60, -32], [-48, -26], [-60, -20]], { lw: 3.6, seed: sd + 72, amp: 0.3 });
     line(c, [[40, -28], [28, -22], [40, -16]], { lw: 3.6, seed: sd + 73, amp: 0.3 });
     lips(c, -9, 22, 44, true, sd + 80, { gap: 2.1, inside: '#4a0d18', fangs: true });
+    c.restore();
+
+    // 들어 올린 팔: 어깨 쪽 옷깃을 움켜쥔다 (머리 옆, 앞쪽)
+    const R = [[48, -140], [130, -122], [136 + wv, -202]];
+    line(c, [[58, -166], [44, -150], [52, -134]], { lw: 3, seed: sd + 25, amp: 0.4 });
+    line(c, [[70, -160], [60, -146]], { lw: 3, seed: sd + 26, amp: 0.4 });
+    limb(c, body, R, 24, { seed: sd + 24 });
+    const f = R[2];
+    shape(c, ell(f[0], f[1] - 6, 18, 16, 10), { fill: WHITE, lw: 4.5, seed: sd + 27, amp: 0.6 });
+    for (let i = -1; i <= 1; i++) line(c, [[f[0] - 12, f[1] - 8 + i * 7], [f[0] - 2, f[1] - 9 + i * 7]], { lw: 2.5, seed: sd + 28 + i, amp: 0.2 });
+    claws(c, [f[0], f[1] - 8], -Math.PI / 2 - 0.5, sd + 46);
     c.restore();
 
     c.restore();
@@ -1641,18 +1641,37 @@
       const nw = cafeWidth(c, '김재원', 24, true);
       box(c, ix + 76 + nw, 380, ix + 138 + nw, 404, { lw: 2, stroke: '#9ad3a8', seed: 1358, amp: 0.3 });
       cafeText(c, '매니저', ix + 107 + nw, 393, 17, { align: 'center', color: '#3a9a55' });
-      const views = D.views + Math.floor((o.step === 'stamp' ? 12 : 0) + el * 23);
+      const views = D.views + Math.floor({ post: 0, flood: 120, stamp: 260 }[o.step] + el * 23);
       cafeText(c, D.time + '   조회 ' + views.toLocaleString('ko-KR'), ix + 68, 420, 20, { color: GRAY });
       line(c, [[ix, 450], [ix + iw, 450]], { lw: 2, stroke: '#dcdcdc', seed: 1359, amp: 0.3 });
       D.body.forEach((ln, i) => cafeText(c, ln, ix, 490 + i * 42, 28));
-      // 댓글
-      const shown = o.step === 'stamp' ? D.comments.length : D.comments.filter((cm, i) => el >= 0.6 + i * 0.6).length;
-      out.comments = shown;
+      // 댓글. flood: '어케했누?' 댓글이 쏟아진다 (최신 4개만 보이고 숫자가 치솟는다)
+      const flooding = o.step === 'flood' || o.step === 'stamp';
+      let list = D.comments;
+      let count;
+      let born0 = (i) => el - (0.6 + i * 0.6);
+      if (flooding) {
+        const types = ['paper', 'troll', 'phone', 'wolf'];
+        const n = o.step === 'stamp' ? 40 : 4 + Math.floor(Math.max(0, el - 0.3) * 7);
+        const made = [];
+        for (let k = Math.max(4, n - 4); k < n; k++) made.push({ who: types[k % 4], name: D.comments[k % 4].name, text: types[k % 4] === 'wolf' ? D.floodWolf : D.flood[k % D.flood.length], k: k });
+        list = made.reverse();
+        count = o.step === 'stamp' ? '999+' : Math.min(999, 4 + Math.floor(Math.pow(Math.max(0, el - 0.3), 2) * 40));
+        if (count >= 999) count = '999+';
+        out.comments = n;
+        born0 = (i) => (o.step === 'stamp' || i > 0 ? 9 : (el - 0.3) * 7 - (n - 5));
+      }
+      const shown = flooding ? list.length : D.comments.filter((cm, i) => el >= 0.6 + i * 0.6).length;
+      if (!flooding) {
+        out.comments = shown;
+        count = shown;
+      }
       line(c, [[ix, 646], [ix + iw, 646]], { lw: 2, stroke: '#dcdcdc', seed: 1360, amp: 0.3 });
-      cafeText(c, '댓글 ' + shown, ix, 676, 24, { bold: true });
-      D.comments.forEach((cm, i) => {
+      cafeText(c, '댓글 ' + count, ix, 676, 24, { bold: true, color: flooding ? RED : INK });
+      if (flooding) cafeText(c, '새 댓글이 계속 달리는 중...', ix + iw, 676, 20, { align: 'right', color: GRAY });
+      list.forEach((cm, i) => {
         if (i >= shown) return;
-        const born = o.step === 'stamp' ? 9 : el - (0.6 + i * 0.6);
+        const born = o.step === 'stamp' ? 9 : flooding ? born0(i) : el - (0.6 + i * 0.6);
         const pop = Math.min(1, born / 0.18);
         const x = ix + (i % 2) * (iw / 2);
         const y = 724 + Math.floor(i / 2) * 64;
