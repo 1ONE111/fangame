@@ -39,7 +39,9 @@ npx serve .
 
 또는 `index.html`을 브라우저로 그냥 열어도 된다.
 
-GitHub Pages로 올리려면 저장소 Settings → Pages → Branch를 `main` / `(root)`로 지정.
+GitHub Pages: main에 올라가면 `.github/workflows/pages.yml`이 자동으로 배포한다. 주소는 https://1one111.github.io/fangame/
+처음 한 번만 저장소 Settings → Pages → Source를 **GitHub Actions**로 고른다.
+배포할 때 css/js 주소 뒤에 커밋 번호(`?v=...`)를 붙여서, 폰이나 브라우저가 예전 파일을 기억해 옛날 버전이 도는 걸 막는다.
 
 ## 구조
 
