@@ -1725,8 +1725,10 @@
       Art.fan(c, x, feet - jump * 26 * fs, fs, k, { t: t, seed: i + 1, mood: k === 'troll' ? 'laugh' : 'happy', bob: jump * 0.6 });
       if (on) {
         const k2 = clamp((el - 0.25 - i * beat) / 0.12, 0, 1);
-        const sz = (all ? 50 + 6 * pulse : 50) * fs;
-        Art.bubble(c, '어케했누?', x + (i < 2 ? 40 : -40) * fs, feet - 470 * fs, sz, { scale: 0.4 + 0.6 * k2, dir: i < 2 ? -1 : 1, seed: 60 + i });
+        const say = D.chant[k];
+        const sz = (all ? 50 + 6 * pulse : 50) * fs * (say.dyn ? 0.8 : 1);
+        const by = feet - 470 * fs - (gap < 300 && i % 2 ? 50 * fs : 0);
+        Art.bubble(c, say.text, x + (i < 2 ? 40 : -40) * fs, by, sz, { scale: 0.4 + 0.6 * k2, dir: i < 2 ? -1 : 1, seed: 60 + i, dyn: say.dyn });
       }
     });
     if (all) {
