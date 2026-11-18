@@ -148,10 +148,10 @@
     views: 1204,
     stamp: '휴방',
     comments: [
-      { who: 'paper', name: '종이든시청자', text: '푹 쉬세요ㅠㅠ' },
-      { who: 'troll', name: '악질시청자', text: '그럴 줄 알았다ㅋ' },
-      { who: 'phone', name: '폰든시청자', text: '야호를 너무 많이 하셨어' },
-      { who: 'wolf', name: '늑대인간', text: '아우우... (걱정)' },
+      { who: 'paper', name: '종이든시청자', text: '가보로 삼을래' },
+      { who: 'troll', name: '악질시청자', text: '완전 뭥미?' },
+      { who: 'phone', name: '폰든시청자', text: '나만 보정해야지' },
+      { who: 'wolf', name: '늑대인간', text: '아우우', dyn: 'p' },
     ],
   };
 
@@ -166,7 +166,14 @@
 
   D.trollLines = ['우우~', '노잼', 'ㅡㅡ', '에휴', '뭐함?', 'ㅋ', '하품'];
   D.trollLaugh = ['ㅋㅋㅋㅋ', '개꿀ㅋ', '안 막네ㅋ'];
-  D.fanThanks = ['감사합니다!', '꺅', '사랑해요', '가보로 삼을게요', '♥'];
+  /* 시청자마다 한마디 (동작을 해줬을 때, 엔딩 팬카페 댓글).
+     dyn: 'p' = 악보의 p(작게). 글자를 작게 쓰고 옆에 p 표시 */
+  D.react = {
+    paper: { text: '가보로 삼을래' },
+    phone: { text: '나만 보정해야지' },
+    troll: { text: '완전 뭥미?' },
+    wolf: { text: '아우우', dyn: 'p' },
+  };
   D.fanSad = ['...', '힝', '저기요?', 'ㅠㅠ'];
 
   D.judge = {
