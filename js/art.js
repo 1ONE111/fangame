@@ -350,6 +350,19 @@
   function jaewonFace(c, HX, HY, sd, o) {
     o = o || {};
     const F = (px, py) => [HX + px, HY + py];
+    if (o.happy) {
+      c.save();
+      c.globalAlpha *= 0.55;
+      shape(c, ell(HX - 80, HY + 22, 15, 9, 10), { fill: '#ff9fb2', stroke: null, seed: sd + 95, amp: 0.4 });
+      shape(c, ell(HX + 70, HY + 26, 15, 9, 10), { fill: '#ff9fb2', stroke: null, seed: sd + 96, amp: 0.4 });
+      c.restore();
+      line(c, [F(-92, -32), F(-62, -42), F(-28, -38), F(-14, -32)], { lw: 3.2, seed: sd + 20, amp: 0.5 });
+      line(c, [F(92, -29), F(60, -40), F(30, -36), F(20, -30)], { lw: 3.2, seed: sd + 23, amp: 0.5 });
+      line(c, [F(-60, -1), F(-51, -12), F(-42, -1)], { lw: 3.8, seed: sd + 21, amp: 0.3 });
+      line(c, [F(23, 3), F(32, -8), F(41, 3)], { lw: 3.8, seed: sd + 22, amp: 0.3 });
+      lips(c, HX - 9, HY + 50, 42, true, sd + 30, { gap: 1.8 });
+      return;
+    }
     if (o.sick) {
       // 아픈 얼굴: 눈썹 안쪽이 올라간다 + 볼 빗금
       line(c, [F(-92, -16), F(-40, -21), F(-20, -27), F(-13, -32)], { lw: 3.2, seed: sd + 20, amp: 0.5 });
@@ -573,7 +586,7 @@
     // 머리
     shape(c, headPts(HX, HY, HW, HH), { fill: WHITE, lw: 5, seed: sd + 50, amp: 1.2 });
 
-    jaewonFace(c, HX, HY, sd, { blink: o.blink, open: pose === 'shrug' || o.open });
+    jaewonFace(c, HX, HY, sd, { blink: o.blink, open: pose === 'shrug' || o.open, happy: pose === 'yaho3' });
     c.restore();
   };
 
