@@ -263,9 +263,10 @@
 
   /* 빨간 입술 - 왼쪽 볼록은 넓고 납작, 오른쪽 볼록은 둥글고 높다. 가운데는 깊게 V자로 파인다.
      (x, y) = 입술 가로 가운데, 윗입술과 아랫입술이 만나는 선. w = 입술 폭의 절반 */
-  function lips(c, x, y, w, open, seed) {
+  function lips(c, x, y, w, open, seed, o) {
+    o = o || {};
     const P = (nx, ny) => [x + nx * w, y + ny * w];
-    const gap = open ? w * 0.3 : 0;
+    const gap = open ? w * 0.3 * (o.gap || 1) : 0;
     // 벌릴 때 아랫입술은 입꼬리는 그대로, 가운데만 내려간다
     const drop = (nx) => gap * Math.max(0, 1 - nx * nx);
     const D = (nx, ny) => P(nx, ny + drop(nx) / w);
@@ -309,11 +310,19 @@
     ].concat(midBot);
     if (open) {
       shape(c, [P(-0.9, 0.01), P(-0.9, 0.01)].concat(midTop.slice().reverse(), [R, R], midBot), {
-        fill: '#fff',
+        fill: o.inside || '#fff',
         lw: 2.5,
         seed: seed + 3,
         amp: 0.4,
       });
+      if (o.fangs) {
+        [-0.46, 0.5].forEach((fx, i) => {
+          const a = P(fx - 0.11, 0.02);
+          const b = P(fx + 0.11, 0.02);
+          const tip = P(fx, 0.02 + Math.min(0.34, (gap / w) * 0.55));
+          shape(c, [a, b, tip], { fill: '#fff', lw: 2.2, seed: seed + 5 + i, amp: 0.2, poly: true });
+        });
+      }
     }
     shape(c, lower, { fill: RED, lw: 2.8, seed: seed + 1, amp: 0.5 });
     shape(c, upper, { fill: RED, lw: 2.8, seed: seed + 2, amp: 0.5 });
@@ -552,6 +561,147 @@
     shape(c, headPts(HX, HY, HW, HH), { fill: WHITE, lw: 5, seed: sd + 50, amp: 1.2 });
 
     jaewonFace(c, HX, HY, sd, { blink: o.blink, open: pose === 'shrug' || o.open });
+    c.restore();
+  };
+
+  /* ---------- 늑대인간으로 변하는 김재원 (하울링, 정면) ----------
+     (x, y) = 몸통 아래 가운데. k = 변신 정도 0..1 (귀, 털, 찢어진 셔츠가 점점 커진다) */
+  const FUR = '#a99d91';
+  const FUR_D = '#6f645a';
+  function furTuft(c, x0, y0, x1, y1, side, n, seed, lw) {
+    // (x0,y0)→(x1,y1) 선을 따라 바깥쪽(side 방향 법선)으로 삐죽삐죽
+    const dx = x1 - x0;
+    const dy = y1 - y0;
+    const len = Math.hypot(dx, dy) || 1;
+    const nx = (-dy / len) * side;
+    const ny = (dx / len) * side;
+    const pts = [];
+    for (let i = 0; i <= n * 2; i++) {
+      const v = i / (n * 2);
+      const out = i % 2 ? 11 + (i % 4 === 1 ? 5 : 0) : 0;
+      pts.push([x0 + dx * v + nx * out, y0 + dy * v + ny * out]);
+    }
+    // 안쪽으로 조금 파고들게 닫아서 털 색으로 채운다
+    pts.push([x1 - nx * 5, y1 - ny * 5], [x0 - nx * 5, y0 - ny * 5]);
+    shape(c, pts, { fill: FUR, lw: lw || 3, seed: seed, amp: 0.6, poly: true });
+  }
+  function claws(c, p, ang, seed) {
+    for (let i = -1; i <= 1; i++) {
+      const a = ang + i * 0.38;
+      const x0 = p[0] + Math.cos(a) * 12;
+      const y0 = p[1] + Math.sin(a) * 12;
+      line(c, [[x0, y0], [x0 + Math.cos(a) * 12 + Math.cos(a + 1.4) * 4, y0 + Math.sin(a) * 12 + Math.sin(a + 1.4) * 4]], { lw: 4, seed: seed + i, amp: 0.3 });
+    }
+  }
+
+  Art.jaewonWere = function (c, x, y, s, t, k, o) {
+    o = o || {};
+    k = Math.max(0, Math.min(1, k));
+    const sd = 400;
+    c.save();
+    c.translate(x, y);
+    c.scale(s, s);
+    if (!o.still) c.translate(Math.sin(t * 47) * 1.6 * k, 0);
+
+    // 다리: 버티고 선 자세
+    tube(c, [[-24, -14], [-46, 36], [-40, 82]], 30, { seed: sd + 1 });
+    tube(c, [[24, -14], [46, 36], [40, 82]], 30, { seed: sd + 2 });
+
+    const body = wob(
+      [[-50, 0], [-52, -80], [-56, -128], [-50, -160], [-28, -178], [0, -182], [28, -178], [50, -160], [56, -128], [52, -80], [50, 0], [0, 6]],
+      sd,
+      1.6
+    );
+    c.beginPath();
+    trace(c, body, true);
+    c.fillStyle = WHITE;
+    c.fill();
+    c.strokeStyle = INK;
+    c.lineWidth = 5;
+    c.lineJoin = 'round';
+    c.stroke();
+    c.fillStyle = WHITE;
+    c.fillRect(-38, -12, 28, 16);
+    c.fillRect(10, -12, 28, 16);
+
+    // 셔츠가 세로로 찢어지면서 털이 보인다 (몸통 안쪽만)
+    c.save();
+    c.beginPath();
+    trace(c, body, true);
+    c.clip();
+    const hw = 6 + 34 * k;
+    const top = -184;
+    const bot = -20 - (1 - k) * 70;
+    const tear = [];
+    const nz = 8;
+    for (let i = 0; i <= nz; i++) {
+      const v = i / nz;
+      const w = hw * Math.sin(Math.PI * (0.08 + v * 0.84));
+      tear.push([-w - (i % 2 ? 9 * k : 0), top + (bot - top) * v]);
+    }
+    for (let i = nz; i >= 0; i--) {
+      const v = i / nz;
+      const w = hw * Math.sin(Math.PI * (0.08 + v * 0.84));
+      tear.push([w + (i % 2 ? 0 : 9 * k), top + (bot - top) * v]);
+    }
+    shape(c, tear, { fill: FUR, lw: 3, seed: sd + 5, amp: 1, poly: true });
+    for (let i = 0; i < 7; i++) {
+      const fx = -hw * 0.55 + (i % 4) * hw * 0.36;
+      const fy = top + 34 + Math.floor(i / 4) * 44 + (i % 2) * 12;
+      if (fy < bot - 8) line(c, [[fx, fy], [fx - 4, fy + 13]], { lw: 2.5, stroke: FUR_D, seed: sd + 10 + i, amp: 0.4 });
+    }
+    c.restore();
+
+    // 팔: 한 손은 찢은 셔츠 조각을 쥐고 위로, 한 손은 발톱 세우고 아래로
+    const AW = 24;
+    const wv = Math.sin(t * 16) * 6 * k;
+    const R = [[50, -140], [122, -152], [154, -228], [150 + wv, -306]];
+    const L = [[-50, -138], [-104, -100], [-114 - wv, -48]];
+    limb(c, body, L, AW, { seed: sd + 20 });
+    limb(c, body, R, AW, { seed: sd + 24 });
+    if (k > 0.15) {
+      const n = 1 + Math.round(k * 2);
+      furTuft(c, L[1][0] - 12, L[1][1] - 10, L[2][0] - 12, L[2][1] - 6, 1, n, sd + 30, 3);
+      furTuft(c, R[2][0] + 13, R[2][1] + 4, R[3][0] + 13, R[3][1] + 12, 1, n, sd + 32, 3);
+      furTuft(c, -52, -168, -60, -128, 1, n, sd + 34, 3);
+      furTuft(c, 60, -128, 52, -168, 1, n, sd + 36, 3);
+    }
+    claws(c, L[2], Math.PI / 2 + 0.25, sd + 40);
+    // 찢은 셔츠 조각
+    const h = R[3];
+    shape(c, [[h[0] - 30, h[1] - 26], [h[0] + 4, h[1] - 40], [h[0] + 30, h[1] - 22], [h[0] + 14, h[1] - 16], [h[0] + 20, h[1] - 4], [h[0] - 2, h[1] - 12], [h[0] - 14, h[1] + 2], [h[0] - 16, h[1] - 14]], {
+      fill: '#fff',
+      lw: 3.5,
+      seed: sd + 44,
+      amp: 0.8,
+      poly: true,
+    });
+    claws(c, h, -Math.PI / 2 + 0.3, sd + 46);
+
+    // 머리: 뒤로 젖히고 하늘 보며 아우우
+    c.save();
+    c.translate(0, -238);
+    c.rotate(-0.12);
+    c.scale(1, 0.94);
+    const eh = 8 + 50 * k;
+    [-1, 1].forEach((sg) => {
+      shape(c, [[sg * 98, -58], [sg * 86, -72 - eh], [sg * 42, -88]], { fill: FUR, lw: 4.5, seed: sd + 50 + sg, amp: 0.8, poly: true });
+      if (k > 0.3) shape(c, [[sg * 86, -66], [sg * 81, -72 - eh * 0.72], [sg * 56, -82]], { fill: '#f7b6c2', stroke: null, seed: sd + 53 + sg, amp: 0.4, poly: true });
+    });
+    shape(c, headPts(0, 0, 112, 95), { fill: WHITE, lw: 5, seed: sd + 56, amp: 1.2 });
+    if (k > 0.2) {
+      const n = 1 + Math.round(k * 2);
+      furTuft(c, -104, -20, -96, 46, -1, n, sd + 60, 3);
+      furTuft(c, 106, -20, 98, 46, 1, n, sd + 62, 3);
+    }
+    // 얼굴: 위를 보니까 이목구비가 위로 올라간다
+    line(c, [[-94, -54], [-46, -52], [-22, -44], [-12, -36]], { lw: 3.6, seed: sd + 70, amp: 0.5 });
+    line(c, [[94, -50], [40, -48], [24, -40], [18, -32]], { lw: 3.6, seed: sd + 71, amp: 0.5 });
+    line(c, [[-60, -32], [-48, -26], [-60, -20]], { lw: 3.6, seed: sd + 72, amp: 0.3 });
+    line(c, [[40, -28], [28, -22], [40, -16]], { lw: 3.6, seed: sd + 73, amp: 0.3 });
+    lips(c, -9, 22, 44, true, sd + 80, { gap: 2.1, inside: '#4a0d18', fangs: true });
+    c.restore();
+
     c.restore();
   };
 

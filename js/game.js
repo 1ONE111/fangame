@@ -520,7 +520,22 @@
     const h = g.hold;
     g.hold = null;
     A.howlStop();
+    setAnim(g, 'unturn', b, 0.35);
     finish(g, h.note, h.q, 'howl', b);
+  }
+
+  /* 하울링 연출: 뒤돌아서(turn 0→1) 늑대인간으로 변하고(were 0→1) 밤이 된다(night) */
+  function howlState(g, b) {
+    const pl = g.player;
+    if (g.hold) {
+      const hb = b - g.hold.b0;
+      return { turn: clamp(hb / 0.28, 0, 1), were: clamp(hb / 1.4, 0, 1), night: clamp(hb / 0.35, 0, 1) };
+    }
+    if (pl.anim === 'unturn') {
+      const u = (b - pl.b0) / pl.dur;
+      if (u < 1) return { turn: 1 - clamp(u, 0, 1), were: 1, night: 1 - clamp(u, 0, 1) };
+    }
+    return null;
   }
 
   function inputSwipe(tSec, dir) {
@@ -1313,6 +1328,24 @@
 
     Art.backdrop(c, W, H, t, { banner: g.mode === 'tutorial' ? '김재원 팬미팅 (연습)' : '김재원 팬미팅' });
     Art.sideDecor(c, W, H, t);
+    const hs = howlState(g, b);
+    if (hs && hs.night > 0) {
+      c.save();
+      c.fillStyle = 'rgba(16, 20, 52, ' + 0.38 * hs.night + ')';
+      c.fillRect(0, 0, W, H);
+      // 달은 왼쪽 위 (오른쪽엔 콤보 글자가 뜬다)
+      const mx = Math.max(110, cx - 360);
+      const my = H - 985;
+      c.globalAlpha = hs.night;
+      c.fillStyle = 'rgba(255, 246, 201, 0.25)';
+      c.beginPath();
+      c.arc(mx, my, 92, 0, Math.PI * 2);
+      c.fill();
+      Art.shape(c, Art.ell(mx, my, 60, 60, 16), { fill: '#fff6c9', lw: 4, seed: 990, amp: 0.8 });
+      Art.dot(c, mx - 18, my - 10, 9, '#efe2a6');
+      Art.dot(c, mx + 20, my + 16, 6, '#efe2a6');
+      c.restore();
+    }
 
     // 줄 선 시청자들
     const adv = queueAdv(g, b);
@@ -1350,19 +1383,29 @@
 
     for (let i = 0; i < views.length; i++) if (views[i].layer === 'fly') drawFanView(views[i], b, t);
 
-    // 재원 (뒷모습)
+    // 재원: 평소엔 뒷모습. 하울링하는 동안엔 뒤돌아서 늑대인간으로 변한다
     const pl = g.player;
     let anim = pl.anim;
     let u = (b - pl.b0) / pl.dur;
-    if (g.hold) {
-      anim = 'howl';
-      u = (b - g.hold.b0) / 0.5;
-    } else if (u >= 1) {
+    if (u >= 1) {
       anim = 'idle';
       u = 1;
     }
     const bob = Math.pow(1 - frac(b), 3) * 7;
-    Art.jaewonBack(c, cx, H - 132, 1, { anim: anim, u: clamp(u, 0, 1), dir: pl.dir, bob: b < 0 ? 0 : bob, t: t });
+    const drawBack = () => Art.jaewonBack(c, cx, H - 132, 1, { anim: anim === 'unturn' ? 'idle' : anim, u: clamp(u, 0, 1), dir: pl.dir, bob: b < 0 ? 0 : bob, t: t });
+    const drawFront = () => Art.jaewonWere(c, cx, H - 124, 1, t, hs.were, { still: reduceMotion });
+    if (!hs) drawBack();
+    else if (reduceMotion) (hs.turn >= 0.5 ? drawFront : drawBack)();
+    else {
+      // 팽이처럼 돈다: 뒷모습이 가로로 납작해졌다가 앞모습으로 펴진다
+      const sx = Math.max(0.04, Math.abs(1 - 2 * hs.turn));
+      c.save();
+      c.translate(cx, 0);
+      c.scale(sx, 1);
+      c.translate(-cx, 0);
+      (hs.turn >= 0.5 ? drawFront : drawBack)();
+      c.restore();
+    }
 
     // 시청자 말풍선 / 타이밍 안내
     if (front) {
@@ -1716,7 +1759,7 @@
     if (mode === 'tutorial') startTutorial(day);
     else startMain(day);
   };
-  FM.debug.state = () => ({ state: state, b: game ? game.b : null, stats: game ? game.stats : null, result: result, tut: game ? game.tut : null });
+  FM.debug.state = () => ({ state: state, b: game ? game.b : null, stats: game ? game.stats : null, result: result, tut: game ? game.tut : null, hold: !!(game && game.hold) });
   FM.debug.peek = () => {
     const g = game;
     if (!g) return null;
