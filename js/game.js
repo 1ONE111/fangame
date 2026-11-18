@@ -1726,9 +1726,9 @@
       if (on) {
         const k2 = clamp((el - 0.25 - i * beat) / 0.12, 0, 1);
         const say = D.chant[k];
-        const sz = (all ? 50 + 6 * pulse : 50) * fs * (say.dyn ? 0.8 : 1);
+        const sz = (all ? 50 + 6 * pulse : 50) * fs;
         const by = feet - 470 * fs - (gap < 300 && i % 2 ? 50 * fs : 0);
-        Art.bubble(c, say.text, x + (i < 2 ? 40 : -40) * fs, by, sz, { scale: 0.4 + 0.6 * k2, dir: i < 2 ? -1 : 1, seed: 60 + i, dyn: say.dyn });
+        Art.bubble(c, say.text, x + (i < 2 ? 40 : -40) * fs, by, sz, { scale: 0.4 + 0.6 * k2, dir: i < 2 ? -1 : 1, seed: 60 + i });
       }
     });
     if (all) {
