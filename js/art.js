@@ -1,4 +1,4 @@
-/* 김재원 팬미팅 연습게임 - 그림 (캔버스에 손그림 느낌으로 직접 그림) */
+/* 김재원 팬미팅 게임 - 그림 (캔버스에 손그림 느낌으로 직접 그림) */
 (function () {
   'use strict';
   const FM = (window.FM = window.FM || {});
@@ -153,6 +153,24 @@
     c.arc(x, y, r, 0, Math.PI * 2);
     c.fillStyle = col || INK;
     c.fill();
+  }
+  /* 둥근 직사각형 꼭짓점들 (poly: true로 그린다) */
+  function rrect(x0, y0, x1, y1, r, n) {
+    n = n || 4;
+    const pts = [];
+    const corners = [
+      [x1 - r, y0 + r, -Math.PI / 2],
+      [x1 - r, y1 - r, 0],
+      [x0 + r, y1 - r, Math.PI / 2],
+      [x0 + r, y0 + r, Math.PI],
+    ];
+    corners.forEach((k) => {
+      for (let i = 0; i <= n; i++) {
+        const a = k[2] + (i / n) * (Math.PI / 2);
+        pts.push([k[0] + Math.cos(a) * r, k[1] + Math.sin(a) * r]);
+      }
+    });
+    return pts;
   }
   Art.shape = shape;
   Art.line = line;
@@ -801,13 +819,23 @@
       tube(c, [[40, -146], [84, -214], [76, -288 + up]], AW, armO(12));
       tube(c, [[-40, -146], [-66, -104], [-60, -62]], AW, armO(10));
       prop = function () {
+        // 아이폰 뒷면: 둥근 직사각형, 왼쪽 위에 렌즈 3개짜리 카메라 섬
         c.save();
-        c.translate(80, -322 + up);
-        c.rotate(0.12);
-        shape(c, [[-27, -44], [27, -44], [27, 44], [-27, 44]], { fill: '#1b1b1b', lw: lw, seed: sd + 20, amp: 1 });
-        dot(c, -10, -26, 8, '#fff');
-        dot(c, -10, -26, 4, Art.FAN_ACCENT.phone);
-        dot(c, 10, -26, 5, '#fff');
+        c.translate(80, -334 + up);
+        c.rotate(0.1);
+        shape(c, rrect(-27, -54, 27, 54, 12), { fill: '#2c2c33', lw: lw, seed: sd + 20, amp: 0.4, poly: true });
+        shape(c, rrect(-21, -48, 3, -24, 7), { fill: '#4a4a54', lw: 2.5, seed: sd + 21, amp: 0.2, poly: true });
+        [[-14.5, -41.5], [-14.5, -30.5], [-3.5, -36]].forEach((p) => {
+          dot(c, p[0], p[1], 5, '#0d0d10');
+          c.beginPath();
+          c.arc(p[0], p[1], 5, 0, Math.PI * 2);
+          c.strokeStyle = '#9a9aa6';
+          c.lineWidth = 1.6;
+          c.stroke();
+          dot(c, p[0] - 1.3, p[1] - 1.3, 1.4, '#7f8fe0');
+        });
+        dot(c, -3.2, -44.5, 1.8, '#fff2c4');
+        dot(c, -3.2, -27.2, 1.6, '#16161a');
         c.restore();
       };
     } else if (type === 'troll') {

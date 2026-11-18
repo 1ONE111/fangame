@@ -1,4 +1,4 @@
-/* 김재원 팬미팅 연습게임 - 게임 본체 */
+/* 김재원 팬미팅 게임 - 게임 본체 */
 (function () {
   'use strict';
   const FM = window.FM;
@@ -1586,7 +1586,7 @@
     const tall = clamp((H - 1280) / 280, 0, 1);
     const top = H * 0.06 + tall * 96;
     Art.caption(c, '김재원', cx, top + 60, 124, { rot: -0.045, seed: 31 });
-    Art.caption(c, '팬미팅 연습게임', cx, top + 196, 84, { rot: 0.025, seed: 32 });
+    Art.caption(c, '팬미팅 게임', cx, top + 196, 84, { rot: 0.025, seed: 32 });
 
     const baseY = H - 424;
     const bounce = Math.abs(Math.sin(t * 3.2)) * 16;

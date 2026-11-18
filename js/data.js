@@ -1,10 +1,10 @@
-/* 김재원 팬미팅 연습게임 - 스테이지, 스토리, 문구 */
+/* 김재원 팬미팅 게임 - 스테이지, 스토리, 문구 */
 (function () {
   'use strict';
   const FM = (window.FM = window.FM || {});
   const D = (FM.data = {});
 
-  D.title = '김재원 팬미팅 연습게임';
+  D.title = '김재원 팬미팅 게임';
 
   /* 곡 설정. prog = [근음(키 기준 반음), 'M'|'m'] 한 마디씩
      날이 갈수록 빨라진다: 104 → 120 → 136 BPM */
@@ -28,11 +28,12 @@
   };
 
   /* 채보. P=종이(2박) T=악질(2박) C=폰(2박) W=늑대인간(4박) -=쉬는 칸(2박)
+     실전 한 판이 35초 안팎이 되게 맞춘 길이다.
      시청자는 신호 박에 책상 앞에 서고, 그 다음 박에 동작한다. */
   D.charts = {
-    1: 'PPPP PPPT PTPP PTPT TPPT PPTT TPTP TTPT PTTP TTTP',
-    2: 'PPTP CPCP PTCP CCTP TPCT CPTC PCCT TCPC CTCT PCTC CCTP',
-    3: 'PTCP WPT CPW TCPT WW PCTC WTP CTW TPCT WCP CCTT WW PTW TCW',
+    1: 'PPPP PPPT PTPP TPTP PTTP TTPT TP',
+    2: 'PPTP CPCP PTCP CCTP TPCT CPTC PCCT TC',
+    3: 'PTCP WPT CPW TCPT WW PCTC WTP CTW TPCT',
   };
 
   /* 동작마다 조작이 정해져 있다.

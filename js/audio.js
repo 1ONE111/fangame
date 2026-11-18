@@ -1,4 +1,4 @@
-/* 김재원 팬미팅 연습게임 - 소리 (전부 Web Audio 합성, 음원 파일 없음) */
+/* 김재원 팬미팅 게임 - 소리 (전부 Web Audio 합성, 음원 파일 없음) */
 (function () {
   'use strict';
   const FM = (window.FM = window.FM || {});
