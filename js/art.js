@@ -616,13 +616,32 @@
     }
   }
 
-  /* 김재원 하울링 포즈: 의자에 앉은 채 양손으로 가슴 쪽 옷깃을 움켜쥐고(팔꿈치는 양옆으로),
-     고개를 왼쪽 뒤로 크게 젖히고 눈을 질끈 감는다. 입은 꾹 다물고 힘준다. */
+  /* 김재원 하울링 포즈 (상징 포즈): 의자에 앉은 채 흰 티셔츠 옷깃을 양 주먹으로 움켜쥐고,
+     팔꿈치는 양옆으로 쫙 벌리고, 고개는 왼쪽 뒤로 젖혀 눈 질끈. 입은 꾹 다물고 힘준다. */
+  function sleeve(c, a, b, u, seed) {
+    // 팔 a→b 위 u 지점에 반팔 소매 끝선
+    const x = a[0] + (b[0] - a[0]) * u;
+    const y = a[1] + (b[1] - a[1]) * u;
+    const len = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+    const nx = -(b[1] - a[1]) / len;
+    const ny = (b[0] - a[0]) / len;
+    line(c, [[x + nx * 15, y + ny * 15], [x - (b[0] - a[0]) / len * 3, y - (b[1] - a[1]) / len * 3], [x - nx * 15, y - ny * 15]], { lw: 3.5, seed: seed, amp: 0.4 });
+  }
+  function fist(c, f, flip, seed) {
+    shape(c, ell(f[0], f[1], 23, 20, 10), { fill: WHITE, lw: 4.5, seed: seed, amp: 0.6 });
+    // 손가락 마디
+    for (let j = 0; j < 3; j++) {
+      const yy = f[1] - 9 + j * 8;
+      line(c, [[f[0] - 14 * flip, yy], [f[0] + 4 * flip, yy - 1]], { lw: 2.6, seed: seed + 1 + j, amp: 0.2 });
+    }
+    line(c, [[f[0] + 6 * flip, f[1] - 14], [f[0] + 14 * flip, f[1] - 4]], { lw: 2.6, seed: seed + 5, amp: 0.2 });
+  }
+
   Art.jaewonWere = function (c, x, y, s, t, k, o) {
     o = o || {};
     k = Math.max(0, Math.min(1, k));
     const sd = 400;
-    const tremble = o.still ? 0 : Math.sin(t * 31) * 2 * k;
+    const tr = o.still ? 0 : Math.sin(t * 31) * 2.2 * k;
     c.save();
     c.translate(x, y);
     c.scale(s, s);
@@ -637,8 +656,9 @@
     tube(c, [[-24, -12], [-40, 36], [-42, 84]], 30, { seed: sd + 1 });
     tube(c, [[24, -12], [40, 36], [42, 84]], 30, { seed: sd + 2 });
 
+    // 몸통 = 흰 티셔츠 (아래 단 밑단선)
     const body = wob(
-      [[-50, 0], [-52, -80], [-58, -128], [-52, -160], [-28, -178], [0, -182], [28, -178], [52, -160], [58, -128], [52, -80], [50, 0], [0, 6]],
+      [[-50, 0], [-54, -80], [-60, -128], [-54, -160], [-28, -178], [0, -182], [28, -178], [54, -160], [60, -128], [54, -80], [50, 0], [0, 6]],
       sd,
       1.6
     );
@@ -653,59 +673,70 @@
     c.fillStyle = WHITE;
     c.fillRect(-38, -12, 28, 16);
     c.fillRect(10, -12, 28, 16);
+    line(c, [[-52, -24], [0, -20], [52, -24]], { lw: 3.5, seed: sd + 6, amp: 0.6 });
 
-    // 움켜쥔 옷이 당겨진 주름
-    const FL = [-22, -114 + tremble];
-    const FR = [26, -108 - tremble];
-    line(c, [[FL[0] - 6, FL[1] + 14], [-30, -70], [-24, -40]], { lw: 3, seed: sd + 10, amp: 0.6 });
-    line(c, [[FL[0] + 10, FL[1] + 14], [-6, -66]], { lw: 3, seed: sd + 11, amp: 0.6 });
-    line(c, [[FR[0] + 6, FR[1] + 14], [34, -64], [28, -36]], { lw: 3, seed: sd + 12, amp: 0.6 });
-    line(c, [[FR[0] - 10, FR[1] + 14], [10, -62]], { lw: 3, seed: sd + 13, amp: 0.6 });
+    // 주먹 위치 (왼쪽 주먹이 조금 높다)
+    const FL = [-22, -118 + tr];
+    const FR = [34, -96 - tr];
+    // 움켜쥐어 아래로 늘어난 둥근 옷깃 (V자로 당겨짐)
+    line(c, [[-46, -158], [FL[0] + 2, FL[1] - 4], [6, -100], [FR[0] - 4, FR[1] - 6], [48, -156]], { lw: 4, seed: sd + 7, amp: 0.5 });
+    line(c, [[-40, -164], [FL[0] + 8, FL[1] - 14], [6, -114], [FR[0] - 8, FR[1] - 16], [42, -162]], { lw: 2.5, seed: sd + 8, amp: 0.5 });
+    // 당겨진 옷 주름
+    line(c, [[FL[0] - 8, FL[1] + 16], [-34, -70], [-30, -40]], { lw: 3, seed: sd + 10, amp: 0.6 });
+    line(c, [[FL[0] + 12, FL[1] + 16], [-2, -62]], { lw: 3, seed: sd + 11, amp: 0.6 });
+    line(c, [[FR[0] + 8, FR[1] + 16], [40, -58], [36, -34]], { lw: 3, seed: sd + 12, amp: 0.6 });
+    line(c, [[FR[0] - 12, FR[1] + 14], [14, -56]], { lw: 3, seed: sd + 13, amp: 0.6 });
 
-    // 팔: 어깨에서 양옆으로 팔꿈치를 벌리고, 주먹은 가슴 앞으로 모은다
-    const AW = 24;
-    tube(c, [[-50, -146], [-114, -124], [FL[0] - 6, FL[1]]], AW, { seed: sd + 20 });
-    tube(c, [[50, -146], [112, -102], [FR[0] + 6, FR[1]]], AW, { seed: sd + 24 });
-    [FL, FR].forEach((f, i) => {
-      shape(c, ell(f[0], f[1], 19, 16, 10), { fill: WHITE, lw: 4.5, seed: sd + 27 + i, amp: 0.6 });
-      for (let j = -1; j <= 1; j++) line(c, [[f[0] - 9, f[1] + j * 6], [f[0] + 9, f[1] + j * 6 - 1]], { lw: 2.5, seed: sd + 30 + j + i * 3, amp: 0.2 });
-      if (k > 0.5) claws(c, [f[0], f[1] - 4], -Math.PI / 2 + (i ? 0.3 : -0.3), sd + 40 + i * 4);
-    });
-
-    // 머리: 왼쪽 뒤로 크게 젖힘
+    // 머리: 왼쪽 뒤로 젖힘 (얼굴은 보이게)
     c.save();
-    c.translate(-6, -170);
-    c.rotate(-0.46 - 0.06 * k);
+    c.translate(-8, -170);
+    c.rotate(-0.34 - 0.06 * k);
     c.translate(0, -64);
     c.scale(1, 0.95);
-    const eh = 8 + 50 * k;
+    const eh = 6 + 34 * k;
     [-1, 1].forEach((sg) => {
-      shape(c, [[sg * 98, -58], [sg * 86, -72 - eh], [sg * 42, -88]], { fill: FUR, lw: 4.5, seed: sd + 50 + sg, amp: 0.8, poly: true });
-      if (k > 0.3) shape(c, [[sg * 86, -66], [sg * 81, -72 - eh * 0.72], [sg * 56, -82]], { fill: '#f7b6c2', stroke: null, seed: sd + 53 + sg, amp: 0.4, poly: true });
+      shape(c, [[sg * 96, -62], [sg * 86, -74 - eh], [sg * 52, -86]], { fill: FUR, lw: 4.5, seed: sd + 50 + sg, amp: 0.8, poly: true });
+      if (k > 0.3) shape(c, [[sg * 86, -68], [sg * 82, -74 - eh * 0.72], [sg * 62, -82]], { fill: '#f7b6c2', stroke: null, seed: sd + 53 + sg, amp: 0.4, poly: true });
     });
     shape(c, headPts(0, 0, 112, 95), { fill: WHITE, lw: 5, seed: sd + 56, amp: 1.2 });
-    if (k > 0.25) {
-      const n = 1 + Math.round(k * 2);
-      furTuft(c, -104, -20, -96, 46, -1, n, sd + 60, 3);
-      furTuft(c, 106, -20, 98, 46, 1, n, sd + 62, 3);
+    if (k > 0.35) {
+      furTuft(c, -104, -10, -98, 40, -1, 2, sd + 60, 3);
+      furTuft(c, 106, -10, 100, 40, 1, 2, sd + 62, 3);
     }
     // 위를 보니까 이목구비가 위로. 미간 찌푸리고 눈 질끈
-    line(c, [[-94, -46], [-46, -46], [-22, -40], [-12, -32]], { lw: 3.6, seed: sd + 70, amp: 0.5 });
-    line(c, [[94, -44], [40, -44], [24, -38], [18, -30]], { lw: 3.6, seed: sd + 71, amp: 0.5 });
-    line(c, [[-62, -24], [-48, -18], [-62, -12]], { lw: 3.6, seed: sd + 72, amp: 0.3 });
-    line(c, [[42, -20], [28, -14], [42, -8]], { lw: 3.6, seed: sd + 73, amp: 0.3 });
+    line(c, [[-94, -46], [-46, -48], [-22, -40], [-12, -30]], { lw: 3.8, seed: sd + 70, amp: 0.5 });
+    line(c, [[94, -44], [40, -46], [24, -38], [18, -28]], { lw: 3.8, seed: sd + 71, amp: 0.5 });
+    line(c, [[-64, -22], [-50, -16], [-64, -10]], { lw: 4, seed: sd + 72, amp: 0.3 });
+    line(c, [[42, -18], [28, -12], [42, -6]], { lw: 4, seed: sd + 73, amp: 0.3 });
+    line(c, [[-4, -36], [-2, -26]], { lw: 3, seed: sd + 74, amp: 0.3 });
+    line(c, [[6, -38], [8, -28]], { lw: 3, seed: sd + 75, amp: 0.3 });
     // 힘주는 선
-    [[-88, -4], [-80, 10]].forEach((p, i) => line(c, [[p[0], p[1]], [p[0] - 12, p[1] + 6]], { lw: 3, seed: sd + 76 + i, amp: 0.3 }));
-    // 입은 꾹 다물고, 변신하면 송곳니가 아랫입술 위로 삐져나온다
-    lips(c, -9, 34, 40, false, sd + 80);
+    [[-90, -2], [-84, 12]].forEach((p, i) => line(c, [[p[0], p[1]], [p[0] - 13, p[1] + 6]], { lw: 3, seed: sd + 76 + i, amp: 0.3 }));
+    // 입은 꾹. 변신하면 송곳니가 아랫입술 위로
+    lips(c, -9, 36, 40, false, sd + 80);
     if (k > 0.4) {
       [-0.42, 0.48].forEach((fx, i) => {
         const bx = -9 + fx * 40;
         const len = 6 + 8 * k;
-        shape(c, [[bx - 5, 33], [bx + 5, 33], [bx, 33 + len]], { fill: '#fff', lw: 2.2, seed: sd + 84 + i, amp: 0.2, poly: true });
+        shape(c, [[bx - 5, 35], [bx + 5, 35], [bx, 35 + len]], { fill: '#fff', lw: 2.2, seed: sd + 84 + i, amp: 0.2, poly: true });
       });
     }
     c.restore();
+
+    // 팔: 머리보다 앞. 팔꿈치는 양옆으로 쫙, 주먹은 옷깃
+    const AW = 26;
+    const LA = [[-52, -150], [-152, -112], [FL[0] - 8, FL[1] + 2]];
+    const RA = [[52, -150], [154, -100], [FR[0] + 8, FR[1] + 2]];
+    tube(c, LA, AW, { seed: sd + 20 });
+    tube(c, RA, AW, { seed: sd + 24 });
+    sleeve(c, LA[0], LA[1], 0.42, sd + 21);
+    sleeve(c, RA[0], RA[1], 0.42, sd + 25);
+    fist(c, FL, 1, sd + 30);
+    fist(c, FR, -1, sd + 36);
+    if (k > 0.5) {
+      claws(c, [FL[0] - 4, FL[1] - 6], -Math.PI / 2 - 0.3, sd + 44);
+      claws(c, [FR[0] + 4, FR[1] - 6], -Math.PI / 2 + 0.3, sd + 47);
+    }
 
     c.restore();
   };

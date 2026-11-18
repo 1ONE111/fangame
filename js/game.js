@@ -1410,7 +1410,28 @@
     }
     const bob = Math.pow(1 - frac(b), 3) * 7;
     const drawBack = () => Art.jaewonBack(c, cx, H - 132, 1, { anim: anim === 'unturn' ? 'idle' : anim, u: clamp(u, 0, 1), dir: pl.dir, bob: b < 0 ? 0 : bob, t: t });
-    const drawFront = () => Art.jaewonWere(c, cx, H - 132, 1, t, hs.were, { still: reduceMotion });
+    const drawFront = () => {
+      // 상징 포즈 컷: 뒤에 집중선을 깔고 조금 크게
+      if (!reduceMotion) {
+        const ox = cx;
+        const oy = H - 390;
+        c.save();
+        c.globalAlpha = 0.55 * hs.night;
+        c.strokeStyle = '#fffbe6';
+        c.lineCap = 'round';
+        for (let i = 0; i < 36; i++) {
+          const a = (i / 36) * Math.PI * 2 + (i % 2) * 0.05;
+          const r0 = 230 + (i % 3) * 30;
+          c.lineWidth = i % 2 ? 5 : 9;
+          c.beginPath();
+          c.moveTo(ox + Math.cos(a) * r0, oy + Math.sin(a) * r0);
+          c.lineTo(ox + Math.cos(a) * 1400, oy + Math.sin(a) * 1400);
+          c.stroke();
+        }
+        c.restore();
+      }
+      Art.jaewonWere(c, cx, H - 140, 1.12, t, hs.were, { still: reduceMotion });
+    };
     if (!hs) drawBack();
     else if (reduceMotion) (hs.turn >= 0.5 ? drawFront : drawBack)();
     else {
