@@ -130,7 +130,6 @@
       { who: '', text: '다음 날 아침.', scene: 'cafe', step: 'write' },
       { who: '재원', text: '(타닥타닥)', scene: 'cafe', step: 'write' },
       { who: '', text: '네이퍼 팬카페에 공지가 올라왔다.', scene: 'cafe', step: 'post' },
-      { who: '시청자들', text: '어케했누? 어케했누? 어케했누?', scene: 'cafe', step: 'flood' },
       { who: '', text: '- 끝 -\n플레이해주셔서 감사합니다.', scene: 'cafe', step: 'stamp' },
     ],
   };
@@ -148,9 +147,6 @@
     time: '오전 7:12',
     views: 1204,
     stamp: '휴방',
-    // 시청자들이 '어케했누?' 할 때 쏟아지는 댓글
-    flood: ['어케했누?', '어케했누??', '어케했누ㅋㅋㅋ', '어케했누?!', '어케했누어케했누'],
-    floodWolf: '아우우... 어케했누?',
     comments: [
       { who: 'paper', name: '종이든시청자', text: '푹 쉬세요ㅠㅠ' },
       { who: 'troll', name: '악질시청자', text: '그럴 줄 알았다ㅋ' },

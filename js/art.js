@@ -1646,37 +1646,18 @@
       const nw = cafeWidth(c, '김재원', 24, true);
       box(c, ix + 76 + nw, 380, ix + 138 + nw, 404, { lw: 2, stroke: '#9ad3a8', seed: 1358, amp: 0.3 });
       cafeText(c, '매니저', ix + 107 + nw, 393, 17, { align: 'center', color: '#3a9a55' });
-      const views = D.views + Math.floor({ post: 0, flood: 120, stamp: 260 }[o.step] + el * 23);
+      const views = D.views + Math.floor((o.step === 'stamp' ? 160 : 0) + el * 23);
       cafeText(c, D.time + '   조회 ' + views.toLocaleString('ko-KR'), ix + 68, 420, 20, { color: GRAY });
       line(c, [[ix, 450], [ix + iw, 450]], { lw: 2, stroke: '#dcdcdc', seed: 1359, amp: 0.3 });
       D.body.forEach((ln, i) => cafeText(c, ln, ix, 490 + i * 42, 28));
-      // 댓글. flood: '어케했누?' 댓글이 쏟아진다 (최신 4개만 보이고 숫자가 치솟는다)
-      const flooding = o.step === 'flood' || o.step === 'stamp';
-      let list = D.comments;
-      let count;
-      let born0 = (i) => el - (0.6 + i * 0.6);
-      if (flooding) {
-        const types = ['paper', 'troll', 'phone', 'wolf'];
-        const n = o.step === 'stamp' ? 40 : 4 + Math.floor(Math.max(0, el - 0.3) * 7);
-        const made = [];
-        for (let k = Math.max(4, n - 4); k < n; k++) made.push({ who: types[k % 4], name: D.comments[k % 4].name, text: types[k % 4] === 'wolf' ? D.floodWolf : D.flood[k % D.flood.length], k: k });
-        list = made.reverse();
-        count = o.step === 'stamp' ? '999+' : Math.min(999, 4 + Math.floor(Math.pow(Math.max(0, el - 0.3), 2) * 40));
-        if (count >= 999) count = '999+';
-        out.comments = n;
-        born0 = (i) => (o.step === 'stamp' || i > 0 ? 9 : (el - 0.3) * 7 - (n - 5));
-      }
-      const shown = flooding ? list.length : D.comments.filter((cm, i) => el >= 0.6 + i * 0.6).length;
-      if (!flooding) {
-        out.comments = shown;
-        count = shown;
-      }
+      // 댓글
+      const shown = o.step === 'stamp' ? D.comments.length : D.comments.filter((cm, i) => el >= 0.6 + i * 0.6).length;
+      out.comments = shown;
       line(c, [[ix, 646], [ix + iw, 646]], { lw: 2, stroke: '#dcdcdc', seed: 1360, amp: 0.3 });
-      cafeText(c, '댓글 ' + count, ix, 676, 24, { bold: true, color: flooding ? RED : INK });
-      if (flooding) cafeText(c, '새 댓글이 계속 달리는 중...', ix + iw, 676, 20, { align: 'right', color: GRAY });
-      list.forEach((cm, i) => {
+      cafeText(c, '댓글 ' + shown, ix, 676, 24, { bold: true });
+      D.comments.forEach((cm, i) => {
         if (i >= shown) return;
-        const born = o.step === 'stamp' ? 9 : flooding ? born0(i) : el - (0.6 + i * 0.6);
+        const born = o.step === 'stamp' ? 9 : el - (0.6 + i * 0.6);
         const pop = Math.min(1, born / 0.18);
         const x = ix + (i % 2) * (iw / 2);
         const y = 724 + Math.floor(i / 2) * 64;
