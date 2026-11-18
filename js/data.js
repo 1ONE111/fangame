@@ -122,10 +122,10 @@
       { who: '', text: '그렇게 3일간의 팬미팅이 끝났다.', pose: 'down' },
       { who: '', text: '굳었던 몸이 다 풀렸다.\n싸인도, 밴도, 사진도, 하울링도 문제없었다.', pose: 'chestpop' },
       { who: '재원', text: '야호오오오오오!!', pose: 'yaho3' },
-      { who: '시청자들', text: '어케했누? 어케했누? 어케했누?', pose: 'yaho3' },
+      { who: '시청자들', text: '와아아아아!!', pose: 'yaho2' },
       { who: '', text: '전역 후 첫 팬미팅, 무사히 끝!', pose: 'yaho1' },
       { who: '', text: '그날 밤.', scene: 'sick' },
-      { who: '재원', text: '끄응... 몸이 왜 이러누', scene: 'sick' },
+      { who: '재원', text: '끄응... 몸이 왜 이러지', scene: 'sick' },
       { who: '', text: '전역하고 안 쓰던 몸을 3일 내내 썼더니\n몸살이 나버렸다.', scene: 'sick' },
       { who: '', text: '다음 날 아침.', scene: 'cafe', step: 'write' },
       { who: '재원', text: '(타닥타닥)', scene: 'cafe', step: 'write' },
@@ -155,7 +155,7 @@
     ],
   };
 
-  /* 엔딩 '어케했누?' 장면에서 시청자마다 말풍선에 하는 말 */
+  /* 엔딩에서 시청자들이 한 명씩 나와 말풍선으로 하는 말 */
   D.chant = {
     paper: { text: '가보로 삼을래' },
     troll: { text: '완전 뭥미?' },
@@ -168,7 +168,7 @@
     { id: 'S', min: 90, caption: '야호오오오오오!!', pose: 'yaho3', line: '완벽한 팬미팅이었다.' },
     { id: 'A', min: 75, caption: '야호오오', pose: 'yaho2', line: '꽤 잘했다. 시청자들이 만족했다.' },
     { id: 'B', min: 55, caption: '야호', pose: 'yaho1', line: '어찌저찌 끝냈다. 통과.' },
-    { id: 'F', min: 0, caption: '어케했누?', pose: 'lie', line: '팬미팅이 엉망이 됐다. 다시 해보자.' },
+    { id: 'F', min: 0, caption: '망했다...', pose: 'lie', line: '팬미팅이 엉망이 됐다. 다시 해보자.' },
   ];
   D.passScore = 55;
 

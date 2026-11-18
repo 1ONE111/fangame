@@ -440,7 +440,7 @@
   };
 
   /* ---------- 김재원 캐릭터 (정면) ----------
-     (x, y) = 몸통 아래 가운데. pose: down | yaho1 | yaho2 | yaho3 | think | shrug | lie | vsign */
+     (x, y) = 몸통 아래 가운데. pose: down | yaho1 | yaho2 | yaho3 | think | shrug | lie | vsign | chestpop */
   Art.jaewon = function (c, x, y, s, pose, t, o) {
     o = o || {};
     t = t || 0;
@@ -518,29 +518,20 @@
       arm([[-50, -140], [-112, -152], [-152 + wv(0, 0), -224], [-132 + wv(1, 0), -300], [-158 + wv(2, 0), -370], [-136 + wv(3, 0), -440]], sd + 10);
       arm([[50, -140], [112, -152], [152 + wv(0, 2), -224], [132 + wv(1, 2), -300], [158 + wv(2, 2), -370], [136 + wv(3, 2), -440]], sd + 14);
     } else if (pose === 'yaho3') {
-      for (let k = 0; k < 3; k++) {
-        const ph = k * 2.1;
-        const sp = 46 * k;
-        const wv = (i) => Math.sin(t * 13 + i * 1.5 + ph) * (20 + k * 6);
-        const L = [[-50, -140], [-118 - sp * 0.5 + wv(0), -160 - k * 4], [-156 - sp + wv(1), -240], [-138 - sp * 0.9 + wv(2), -325], [-160 - sp * 1.1 + wv(3), -412 + k * 22]];
-        const Rr = [[50, -140], [118 + sp * 0.5 + wv(4), -160 - k * 4], [156 + sp + wv(5), -240], [138 + sp * 0.9 + wv(6), -325], [160 + sp * 1.1 + wv(7), -412 + k * 22]];
-        arm(L, sd + 10 + k * 7, 4);
-        arm(Rr, sd + 14 + k * 7, 4);
-        // 털 같은 떨림선
-        [L, Rr].forEach((pts, si) => {
-          for (let i = 1; i < pts.length; i++) {
-            const p = pts[i];
-            const q = pts[i - 1];
-            for (let m = 0; m < 3; m++) {
-              const u = (m + 0.5) / 3;
-              const px = q[0] + (p[0] - q[0]) * u;
-              const py = q[1] + (p[1] - q[1]) * u;
-              const side = si === 0 ? -1 : 1;
-              line(c, [[px + side * 14, py], [px + side * (24 + jit(sd + i * 9 + m + k * 31, 5)), py - 6]], { lw: 2.5, seed: sd + 60 + i * 5 + m + k * 13, amp: 2 });
-            }
-          }
-        });
-      }
+      // 팔은 두 개만. yaho2보다 크고 빠르게 흔들고, 손 옆에 흔들림 표시
+      const wv = (i, ph) => Math.sin(t * 15 + i * 1.3 + ph) * 22;
+      const L = [[-50, -140], [-112, -152], [-152 + wv(0, 0), -224], [-132 + wv(1, 0), -300], [-158 + wv(2, 0), -370], [-136 + wv(3, 0), -440]];
+      const Rr = [[50, -140], [112, -152], [152 + wv(0, 2), -224], [132 + wv(1, 2), -300], [158 + wv(2, 2), -370], [136 + wv(3, 2), -440]];
+      arm(L, sd + 10);
+      arm(Rr, sd + 14);
+      [L, Rr].forEach((pts, si) => {
+        const h = pts[pts.length - 1];
+        const sg = si === 0 ? -1 : 1;
+        for (let m = 0; m < 2; m++) {
+          const r = 30 + m * 14;
+          line(c, [[h[0] + sg * r, h[1] - 18], [h[0] + sg * (r + 6), h[1]], [h[0] + sg * r, h[1] + 18]], { lw: 3.5, seed: sd + 60 + m + si * 3, amp: 0.4 });
+        }
+      });
     } else if (pose === 'think') {
       arm([[-50, -140], [-118, -160], [-146, -226], [-122 + sw * 3, -290 + sw * 4]], sd + 10);
       arm([[50, -140], [66, -92], [62, -44]], sd + 14);

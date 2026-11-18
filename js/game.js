@@ -1678,7 +1678,6 @@
       Art.fan(c, cx + 500, baseY + 92, 0.62, 'wolf', { t: t, seed: 4, bob: Math.pow(1 - frac(t * 1.6 + 0.75), 3) });
     }
     Art.jaewon(c, cx, baseY - bounce, 0.98 + tall * 0.2, 'yaho1', t, { blink: frac(t * 0.31) > 0.94 });
-    Art.text(c, '어케했누?', cx - 232, baseY - 300, 46, { rot: -0.1 });
     Art.text(c, '야호', cx + 236, baseY - 318, 52, { rot: 0.12 });
   }
 
@@ -1708,7 +1707,7 @@
     Art.jaewon(c, cx, baseY, sc, ln.pose || 'down', t, { long: true, open: talking && frac(t * 5) > 0.5, blink: frac(t * 0.27) > 0.95 });
   }
 
-  /* 엔딩: 시청자들 '어케했누?' 합창. 한 명씩 박자에 맞춰 외치다가 다 같이 */
+  /* 엔딩: 시청자들이 한 명씩 박자에 맞춰 한마디씩 하고, 다 같이 뛴다 */
   function renderChant(t, dialogTop) {
     const beat = 0.42;
     const el = (performance.now() - story.lineT0) / 1000;
@@ -1731,14 +1730,6 @@
         Art.bubble(c, say.text, x + (i < 2 ? 40 : -40) * fs, by, sz, { scale: 0.4 + 0.6 * k2, dir: i < 2 ? -1 : 1, seed: 60 + i });
       }
     });
-    if (all) {
-      const k3 = clamp((el - 0.25 - ks.length * beat) / 0.15, 0, 1);
-      Art.caption(c, '어케했누?', W / 2, Math.max(150, feet - 640 * fs), 132 * Math.min(1, fs + 0.1), {
-        scale: (0.5 + 0.5 * k3) * (1 + 0.08 * pulse),
-        rot: Math.floor((el - 0.25) / beat) % 2 ? 0.05 : -0.05,
-        seed: 70,
-      });
-    }
   }
 
   /* 엔딩 컷씬 장면 (몸살 난 밤, 팬카페 공지). 같은 장면이 이어지면 애니메이션도 이어진다 */
