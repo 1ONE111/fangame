@@ -1410,7 +1410,7 @@
     }
     const bob = Math.pow(1 - frac(b), 3) * 7;
     const drawBack = () => Art.jaewonBack(c, cx, H - 132, 1, { anim: anim === 'unturn' ? 'idle' : anim, u: clamp(u, 0, 1), dir: pl.dir, bob: b < 0 ? 0 : bob, t: t });
-    const drawFront = () => Art.jaewonWere(c, cx, H - 124, 1, t, hs.were, { still: reduceMotion });
+    const drawFront = () => Art.jaewonWere(c, cx, H - 132, 1, t, hs.were, { still: reduceMotion });
     if (!hs) drawBack();
     else if (reduceMotion) (hs.turn >= 0.5 ? drawFront : drawBack)();
     else {

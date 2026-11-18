@@ -616,44 +616,32 @@
     }
   }
 
-  /* 무릎 꿇고 상체를 뒤로 젖힌 채 하늘 보고 하울링.
-     한 손은 들어 올려 어깨 쪽 옷깃을 움켜쥐고, 한 손은 몸 뒤로 뺀다. */
+  /* 김재원 하울링 포즈: 의자에 앉은 채 양손으로 가슴 쪽 옷깃을 움켜쥐고(팔꿈치는 양옆으로),
+     고개를 왼쪽 뒤로 크게 젖히고 눈을 질끈 감는다. 입은 꾹 다물고 힘준다. */
   Art.jaewonWere = function (c, x, y, s, t, k, o) {
     o = o || {};
     k = Math.max(0, Math.min(1, k));
     const sd = 400;
-    const wv = o.still ? 0 : Math.sin(t * 16) * 4 * k;
+    const tremble = o.still ? 0 : Math.sin(t * 31) * 2 * k;
     c.save();
     c.translate(x, y);
     c.scale(s, s);
-    if (!o.still) c.translate(Math.sin(t * 47) * 1.4 * k, 0);
+    if (!o.still) c.translate(Math.sin(t * 47) * 1.2 * k, 0);
 
-    // 바닥 그림자
-    c.fillStyle = 'rgba(0, 0, 0, 0.12)';
-    c.beginPath();
-    c.ellipse(0, 72, 130, 14, 0, 0, Math.PI * 2);
-    c.fill();
-    // 다리: 무릎 꿇기. 정강이는 뒤로 접혀서 발끝만 옆으로 보인다
-    tube(c, [[-40, 62], [-74, 56], [-100, 46]], 26, { seed: sd + 3 });
-    tube(c, [[40, 62], [74, 56], [100, 46]], 26, { seed: sd + 4 });
-    tube(c, [[-22, -12], [-34, 30], [-40, 62]], 32, { seed: sd + 1 });
-    tube(c, [[22, -12], [34, 30], [40, 62]], 32, { seed: sd + 2 });
+    // 의자 (게임할 때 앉아 있던 그 의자)
+    line(c, [[-46, 4], [-58, 90]], { lw: 5, seed: sd + 90 });
+    line(c, [[46, 4], [58, 90]], { lw: 5, seed: sd + 91 });
+    line(c, [[-52, 56], [52, 56]], { lw: 4, seed: sd + 92 });
+    shape(c, ell(0, 0, 80, 15, 10), { fill: '#fff', seed: sd + 93, amp: 1.2 });
+    // 다리: 앉아서 무릎을 살짝 벌림
+    tube(c, [[-24, -12], [-40, 36], [-42, 84]], 30, { seed: sd + 1 });
+    tube(c, [[24, -12], [40, 36], [42, 84]], 30, { seed: sd + 2 });
 
-    // 상체: 뒤로 젖히며 왼쪽으로 살짝 비튼다
-    c.save();
-    c.translate(0, -6);
-    c.rotate(-0.06 - 0.06 * k);
-    c.translate(0, 6);
     const body = wob(
       [[-50, 0], [-52, -80], [-58, -128], [-52, -160], [-28, -178], [0, -182], [28, -178], [52, -160], [58, -128], [52, -80], [50, 0], [0, 6]],
       sd,
       1.6
     );
-    // 몸 뒤로 뺀 팔 (몸통보다 먼저 그려서 뒤에 있게)
-    const L = [[-44, -132], [-104, -94], [-100 + wv, -26]];
-    tube(c, L, 24, { seed: sd + 20 });
-    claws(c, L[2], Math.PI / 2 + 0.4, sd + 40);
-
     c.beginPath();
     trace(c, body, true);
     c.fillStyle = WHITE;
@@ -666,12 +654,30 @@
     c.fillRect(-38, -12, 28, 16);
     c.fillRect(10, -12, 28, 16);
 
-    // 머리: 크게 뒤로 젖혀서 하늘 보며 아우우
+    // 움켜쥔 옷이 당겨진 주름
+    const FL = [-22, -114 + tremble];
+    const FR = [26, -108 - tremble];
+    line(c, [[FL[0] - 6, FL[1] + 14], [-30, -70], [-24, -40]], { lw: 3, seed: sd + 10, amp: 0.6 });
+    line(c, [[FL[0] + 10, FL[1] + 14], [-6, -66]], { lw: 3, seed: sd + 11, amp: 0.6 });
+    line(c, [[FR[0] + 6, FR[1] + 14], [34, -64], [28, -36]], { lw: 3, seed: sd + 12, amp: 0.6 });
+    line(c, [[FR[0] - 10, FR[1] + 14], [10, -62]], { lw: 3, seed: sd + 13, amp: 0.6 });
+
+    // 팔: 어깨에서 양옆으로 팔꿈치를 벌리고, 주먹은 가슴 앞으로 모은다
+    const AW = 24;
+    tube(c, [[-50, -146], [-114, -124], [FL[0] - 6, FL[1]]], AW, { seed: sd + 20 });
+    tube(c, [[50, -146], [112, -102], [FR[0] + 6, FR[1]]], AW, { seed: sd + 24 });
+    [FL, FR].forEach((f, i) => {
+      shape(c, ell(f[0], f[1], 19, 16, 10), { fill: WHITE, lw: 4.5, seed: sd + 27 + i, amp: 0.6 });
+      for (let j = -1; j <= 1; j++) line(c, [[f[0] - 9, f[1] + j * 6], [f[0] + 9, f[1] + j * 6 - 1]], { lw: 2.5, seed: sd + 30 + j + i * 3, amp: 0.2 });
+      if (k > 0.5) claws(c, [f[0], f[1] - 4], -Math.PI / 2 + (i ? 0.3 : -0.3), sd + 40 + i * 4);
+    });
+
+    // 머리: 왼쪽 뒤로 크게 젖힘
     c.save();
-    c.translate(0, -172);
-    c.rotate(-0.3 - 0.08 * k);
-    c.translate(0, -66);
-    c.scale(1, 0.94);
+    c.translate(-6, -170);
+    c.rotate(-0.46 - 0.06 * k);
+    c.translate(0, -64);
+    c.scale(1, 0.95);
     const eh = 8 + 50 * k;
     [-1, 1].forEach((sg) => {
       shape(c, [[sg * 98, -58], [sg * 86, -72 - eh], [sg * 42, -88]], { fill: FUR, lw: 4.5, seed: sd + 50 + sg, amp: 0.8, poly: true });
@@ -683,23 +689,22 @@
       furTuft(c, -104, -20, -96, 46, -1, n, sd + 60, 3);
       furTuft(c, 106, -20, 98, 46, 1, n, sd + 62, 3);
     }
-    // 위를 보니까 이목구비가 위로 올라간다. 눈은 질끈
-    line(c, [[-94, -54], [-46, -52], [-22, -44], [-12, -36]], { lw: 3.6, seed: sd + 70, amp: 0.5 });
-    line(c, [[94, -50], [40, -48], [24, -40], [18, -32]], { lw: 3.6, seed: sd + 71, amp: 0.5 });
-    line(c, [[-60, -32], [-48, -26], [-60, -20]], { lw: 3.6, seed: sd + 72, amp: 0.3 });
-    line(c, [[40, -28], [28, -22], [40, -16]], { lw: 3.6, seed: sd + 73, amp: 0.3 });
-    lips(c, -9, 22, 44, true, sd + 80, { gap: 2.1, inside: '#4a0d18', fangs: true });
-    c.restore();
-
-    // 들어 올린 팔: 어깨 쪽 옷깃을 움켜쥔다 (머리 옆, 앞쪽)
-    const R = [[48, -140], [130, -122], [136 + wv, -202]];
-    line(c, [[58, -166], [44, -150], [52, -134]], { lw: 3, seed: sd + 25, amp: 0.4 });
-    line(c, [[70, -160], [60, -146]], { lw: 3, seed: sd + 26, amp: 0.4 });
-    limb(c, body, R, 24, { seed: sd + 24 });
-    const f = R[2];
-    shape(c, ell(f[0], f[1] - 6, 18, 16, 10), { fill: WHITE, lw: 4.5, seed: sd + 27, amp: 0.6 });
-    for (let i = -1; i <= 1; i++) line(c, [[f[0] - 12, f[1] - 8 + i * 7], [f[0] - 2, f[1] - 9 + i * 7]], { lw: 2.5, seed: sd + 28 + i, amp: 0.2 });
-    claws(c, [f[0], f[1] - 8], -Math.PI / 2 - 0.5, sd + 46);
+    // 위를 보니까 이목구비가 위로. 미간 찌푸리고 눈 질끈
+    line(c, [[-94, -46], [-46, -46], [-22, -40], [-12, -32]], { lw: 3.6, seed: sd + 70, amp: 0.5 });
+    line(c, [[94, -44], [40, -44], [24, -38], [18, -30]], { lw: 3.6, seed: sd + 71, amp: 0.5 });
+    line(c, [[-62, -24], [-48, -18], [-62, -12]], { lw: 3.6, seed: sd + 72, amp: 0.3 });
+    line(c, [[42, -20], [28, -14], [42, -8]], { lw: 3.6, seed: sd + 73, amp: 0.3 });
+    // 힘주는 선
+    [[-88, -4], [-80, 10]].forEach((p, i) => line(c, [[p[0], p[1]], [p[0] - 12, p[1] + 6]], { lw: 3, seed: sd + 76 + i, amp: 0.3 }));
+    // 입은 꾹 다물고, 변신하면 송곳니가 아랫입술 위로 삐져나온다
+    lips(c, -9, 34, 40, false, sd + 80);
+    if (k > 0.4) {
+      [-0.42, 0.48].forEach((fx, i) => {
+        const bx = -9 + fx * 40;
+        const len = 6 + 8 * k;
+        shape(c, [[bx - 5, 33], [bx + 5, 33], [bx, 33 + len]], { fill: '#fff', lw: 2.2, seed: sd + 84 + i, amp: 0.2, poly: true });
+      });
+    }
     c.restore();
 
     c.restore();
